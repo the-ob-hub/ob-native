@@ -1,118 +1,98 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { OnboardingScreen } from './src/features/onboarding/ui/OnboardingScreen';
+import { MainTabs } from './src/navigation/MainTabs';
+import { COLORS } from './src/constants';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onFinish();
+    }, 2000); // 2 segundos de splash
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+    return () => clearTimeout(timer);
+  }, [onFinish]);
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={styles.splashContainer}>
+      <Text style={styles.splashLogo}>OndaBank</Text>
+      <Text style={styles.splashTagline}>Tu banco, completamente agéntico</Text>
+      <ActivityIndicator size="large" color={COLORS.white} style={styles.loader} />
     </View>
   );
-}
+};
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState<'splash' | 'onboarding' | 'main'>('splash');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, []);
+
+  const checkOnboardingStatus = async () => {
+    try {
+      const hasCompleted = await AsyncStorage.getItem('hasCompletedOnboarding');
+      console.log('📱 Onboarding completado:', hasCompleted);
+      
+      // Si ya completó el onboarding, skip directo a main después del splash
+      if (hasCompleted === 'true') {
+        setIsLoading(false);
+        // El splash mostrará y luego irá a main
+      } else {
+        setIsLoading(false);
+        // El splash mostrará y luego irá a onboarding
+      }
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+      setIsLoading(false);
+    }
   };
 
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  const handleSplashFinish = async () => {
+    const hasCompleted = await AsyncStorage.getItem('hasCompletedOnboarding');
+    if (hasCompleted === 'true') {
+      setCurrentScreen('main');
+    } else {
+      setCurrentScreen('onboarding');
+    }
+  };
+
+  const handleOnboardingComplete = () => {
+    setCurrentScreen('main');
+  };
+
+  if (currentScreen === 'splash') {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
+
+  if (currentScreen === 'onboarding') {
+    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
+  }
+
+  return <MainTabs />;
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  splashContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  splashLogo: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    marginBottom: 16,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  splashTagline: {
+    fontSize: 16,
+    color: COLORS.white,
+    opacity: 0.9,
   },
-  highlight: {
-    fontWeight: '700',
+  loader: {
+    marginTop: 48,
   },
 });
-
-export default App;

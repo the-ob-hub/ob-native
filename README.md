@@ -1,79 +1,234 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# OndaBank Mobile App
 
-# Getting Started
+Una aplicación móvil de banca digital con onboarding conversacional impulsado por IA.
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+## 🚀 Características
 
-## Step 1: Start the Metro Server
+- ✅ **Onboarding Conversacional**: Chat con agente IA para recolectar datos del usuario
+- ✅ **SQLite On-Device**: Persistencia de datos en el dispositivo
+- ✅ **UI Moderna**: Diseño neumórfico con animaciones fluidas
+- ✅ **Bottom Navigation**: Navegación animada entre secciones
+- ✅ **Profile Sheet**: Modal deslizante con información completa del usuario
+- ✅ **Splash Screen**: Pantalla de bienvenida animada
+- ✅ **Demo Mode**: Botón para autocompletar datos de prueba
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+## 📱 Tecnologías
 
-To start Metro, run the following command from the _root_ of your React Native project:
+- **React Native 0.75.4** (sin Expo)
+- **TypeScript**
+- **SQLite** (react-native-sqlite-storage)
+- **AsyncStorage** (@react-native-async-storage/async-storage)
+- **React Navigation**
+- **OpenAI GPT-4o** (opcional, funciona sin API key en modo simulado)
 
+## 🛠️ Setup
+
+### Prerequisitos
+
+- Node.js 20+
+- Xcode 15+ (para iOS)
+- CocoaPods
+- Watchman
+
+### Instalación
+
+1. Clonar el repositorio:
 ```bash
-# using npm
-npm start
-
-# OR using Yarn
-yarn start
+git clone <repo-url>
+cd ob-native
 ```
 
-## Step 2: Start your Application
-
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
-
+2. Instalar dependencias:
 ```bash
-# using npm
-npm run android
-
-# OR using Yarn
-yarn android
+npm install
 ```
 
-### For iOS
-
+3. Instalar pods (iOS):
 ```bash
-# using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+cd ios
+pod install
+cd ..
 ```
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+4. Configurar variables de entorno (opcional):
+```bash
+cp .env.example .env
+# Editar .env y agregar tu OPENAI_API_KEY si quieres usar el modo real
+```
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+### Ejecutar en iOS
 
-## Step 3: Modifying your App
+**Opción 1: Desde Xcode**
+1. Abrir `ios/obnative.xcworkspace` en Xcode
+2. Seleccionar tu dispositivo
+3. Presionar ▶️ Run
 
-Now that you have successfully run the app, let's modify it.
+**Opción 2: Desde terminal**
+```bash
+npx react-native run-ios --device "Nombre de tu iPhone"
+```
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+### Ejecutar en Android (próximamente)
+```bash
+npx react-native run-android
+```
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+## 🎯 Uso
 
-## Congratulations! :tada:
+### Testing Rápido
 
-You've successfully run and modified your React Native App. :partying_face:
+En la pantalla de onboarding, presiona el botón **"⚡ COMPLETAR AUTOMÁTICAMENTE"** para autocompletar con datos de prueba:
+- Nombre: Diego S. Burgos
+- DNI: 11111111
+- Teléfono: +54 9 11 3188-5769
+- Dirección: Melo 2883, Buenos Aires
+- Residente de Argentina
+- No PEP
 
-### Now what?
+### Flujo de la App
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
+1. **Splash Screen** → Pantalla de bienvenida (2 seg)
+2. **Onboarding** → Chat conversacional con Onda (agente IA)
+3. **Congratulations** → Pantalla de confirmación (2 seg)
+4. **Home** → Pantalla principal con navegación
 
-# Troubleshooting
+### Estructura de Navegación
 
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+- **Home**: Dashboard principal
+- **Tarjetas**: Gestión de tarjetas (próximamente)
+- **Inversiones**: Portfolio de inversiones (próximamente)
+- **Agent**: Chat con el asistente Onda
 
-# Learn More
+## 📁 Estructura del Proyecto
 
-To learn more about React Native, take a look at the following resources:
+```
+ob-native/
+├── src/
+│   ├── components/          # Componentes reutilizables
+│   │   ├── BottomNav.tsx   # Navegación inferior animada
+│   │   ├── ProfileSheet.tsx # Modal de perfil
+│   │   ├── SkeletonScreen.tsx
+│   │   └── UserAvatar.tsx
+│   ├── constants/           # Constantes (colores, spacing, etc)
+│   ├── data/                # Capa de datos
+│   │   └── database.ts     # SQLite implementation
+│   ├── features/
+│   │   └── onboarding/
+│   │       ├── agent/      # LLM Agent
+│   │       └── ui/         # Componentes de onboarding
+│   ├── models/             # TypeScript interfaces
+│   ├── navigation/         # Navegación de la app
+│   ├── screens/            # Pantallas principales
+│   └── utils/              # Utilidades
+├── ios/                    # Código nativo iOS
+├── android/                # Código nativo Android
+└── App.tsx                 # Entry point
+```
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## 🔧 Configuración
+
+### iOS Deployment Target
+
+El proyecto está configurado para iOS 15.1+. Esto se configura en `ios/Podfile`:
+
+```ruby
+platform :ios, '15.1'
+```
+
+### Watchman
+
+El proyecto usa Watchman para file watching. La configuración está en `.watchmanconfig`:
+
+```json
+{
+  "ignore_dirs": [
+    "ios/Pods",
+    "ios/build",
+    "android/.gradle",
+    "node_modules"
+  ]
+}
+```
+
+## 🤖 OpenAI Integration
+
+Por defecto, la app funciona en **modo simulado** sin necesidad de API key. Para habilitar el modo real con OpenAI:
+
+1. Agregar tu API key en `.env`:
+```
+OPENAI_API_KEY=sk-your-key-here
+```
+
+2. Descomentar el código en `src/features/onboarding/agent/llmAgent.ts`:
+```typescript
+// Cambiar:
+const OPENAI_API_KEY: string | undefined = undefined;
+
+// Por:
+const OPENAI_API_KEY: string | undefined = OPENAI_API_KEY_ENV;
+```
+
+3. Recargar la app
+
+## 📝 Datos Persistentes
+
+La app usa dos métodos de persistencia:
+
+1. **SQLite**: Para datos estructurados (usuarios, mensajes)
+   - Ubicación: `Library/LocalDatabase/OndaBank.db`
+   - Tablas: `users`, `messages`
+
+2. **AsyncStorage**: Para sesión del usuario
+   - Keys: `currentUserId`, `hasCompletedOnboarding`
+
+## 🎨 UI/UX
+
+### Colores Principales
+
+- Primary: `#0066FF` (Azul)
+- Secondary: `#00E0B8` (Turquesa)
+- Background: `#F3F4F6`
+- Text: `#1A1A1A`
+
+### Animaciones
+
+- Bottom Navigation con "bubble" effect
+- Splash Screen con fade in/out
+- Profile Sheet con slide up
+- Skeleton loading con shimmer
+
+## 🐛 Troubleshooting
+
+### Error: EMFILE (too many open files)
+
+Solución:
+```bash
+watchman shutdown-server
+watchman watch-del-all
+cd ios && pod install
+```
+
+### Error: AsyncStorage is null
+
+Solución:
+```bash
+cd ios
+pod install
+# Luego rebuild desde Xcode
+```
+
+### Metro no responde
+
+Solución:
+```bash
+pkill -f "node.*metro"
+npm start -- --reset-cache
+```
+
+## 📄 Licencia
+
+MIT
+
+## 👨‍💻 Autor
+
+Diego S. Burgos
