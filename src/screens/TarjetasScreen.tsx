@@ -17,17 +17,17 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: 'transparent',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.white,
     marginBottom: SPACING.md,
   },
   subtitle: {
     fontSize: 18,
-    color: COLORS.textSecondary,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
 });
 

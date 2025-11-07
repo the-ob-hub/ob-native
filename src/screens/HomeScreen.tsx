@@ -108,6 +108,7 @@ export const HomeScreen: React.FC = () => {
                 fullName={currentUser?.fullName}
                 onPress={() => setIsProfileVisible(true)}
               />
+              <Text style={styles.versionBadge}>v2.0</Text>
             </View>
             <View style={styles.welcomeContainer}>
               <Text style={styles.welcomeTitle}>
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     height: '100%',
-    backgroundColor: COLORS.background,
+    backgroundColor: 'transparent',
   },
   content: {
     flex: 1,
@@ -141,10 +142,20 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: SPACING.lg,
     paddingHorizontal: SPACING.lg,
-    backgroundColor: '#F3F4F6',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.background,
-    alignItems: 'flex-start',
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  versionBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.white,
   },
   welcomeContainer: {
     flex: 1,
@@ -155,13 +166,13 @@ const styles = StyleSheet.create({
   welcomeTitle: {
     fontSize: 32,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: COLORS.white,
     textAlign: 'center',
     marginBottom: SPACING.md,
   },
   subtitle: {
     fontSize: 20,
-    color: COLORS.textSecondary,
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
   },
 });

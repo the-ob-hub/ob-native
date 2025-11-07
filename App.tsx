@@ -23,7 +23,7 @@ const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
   );
 };
 
-export default function App() {
+function App() {
   const [currentScreen, setCurrentScreen] = useState<'splash' | 'onboarding' | 'main'>('splash');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -96,3 +96,5 @@ const styles = StyleSheet.create({
     marginTop: 48,
   },
 });
+
+export default App;

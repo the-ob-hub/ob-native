@@ -201,10 +201,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
             ],
           },
         ]}
+        pointerEvents="none"
       >
         <WhiteCurveShape />
       </Animated.View>
-      {/* Círculo azul */}
+      {/* Círculo oscuro */}
       <Animated.View
         style={[
           styles.bubble,
@@ -215,6 +216,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
             ],
           },
         ]}
+        pointerEvents="none"
       />
 
       {/* Navigation items con íconos inactivos */}
@@ -294,19 +296,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 24,
-    zIndex: 2,
+    zIndex: 10,
   },
   bubble: {
     position: 'absolute',
     top: -22,
     width: 44,
     height: 44,
-    backgroundColor: '#0066FF',
+    backgroundColor: '#000000',
     borderRadius: 22,
     zIndex: 3,
-    shadowColor: '#0066FF',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
   },
@@ -326,6 +328,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 4,
+    pointerEvents: 'none',
   },
   activeTextContainer: {
     position: 'absolute',
@@ -333,6 +336,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 4,
+    pointerEvents: 'none',
   },
   activeText: {
     fontFamily: 'System',
