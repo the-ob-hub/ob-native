@@ -20,13 +20,24 @@ export const MainTabs: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const translateX = useRef(new Animated.Value(0)).current;
 
+  const handleItemPress = (index: number) => {
+    console.log('🟢 MainTabs - handleItemPress llamado con índice:', index);
+    console.log('🟢 MainTabs - activeIndex actual antes de cambiar:', activeIndex);
+    setActiveIndex(index);
+    console.log('🟢 MainTabs - setActiveIndex ejecutado con:', index);
+  };
+
   useEffect(() => {
+    console.log('🟢 MainTabs - activeIndex cambió a:', activeIndex);
+    console.log('🟢 MainTabs - Animando translateX a:', -activeIndex * SCREEN_WIDTH);
     Animated.spring(translateX, {
       toValue: -activeIndex * SCREEN_WIDTH,
       useNativeDriver: true,
       tension: 65,
       friction: 11,
-    }).start();
+    }).start(() => {
+      console.log('🟢 MainTabs - Animación completada');
+    });
   }, [activeIndex]);
 
   return (
@@ -47,6 +58,7 @@ export const MainTabs: React.FC = () => {
           styles.screensContainer,
           { transform: [{ translateX }] },
         ]}
+        pointerEvents="box-none"
       >
         {screens.map((ScreenComponent, index) => (
           <View key={index} style={[styles.screenWrapper, { width: SCREEN_WIDTH }]}>
@@ -55,7 +67,7 @@ export const MainTabs: React.FC = () => {
         ))}
       </Animated.View>
 
-      <BottomNav activeIndex={activeIndex} onItemPress={setActiveIndex} />
+      <BottomNav activeIndex={activeIndex} onItemPress={handleItemPress} />
     </View>
   );
 };
@@ -76,6 +88,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     zIndex: 1,
+    paddingBottom: 80, // Espacio para el BottomNav
   },
   screenWrapper: {
     height: '100%',

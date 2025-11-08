@@ -2,7 +2,6 @@
   "ignore_dirs": [
     "ios/Pods",
     "ios/build",
-    "android/.gradle",
-    "node_modules"
+    "android/.gradle"
   ]
 }

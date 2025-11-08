@@ -108,7 +108,7 @@ export const HomeScreen: React.FC = () => {
                 fullName={currentUser?.fullName}
                 onPress={() => setIsProfileVisible(true)}
               />
-              <Text style={styles.versionBadge}>v2.0</Text>
+              <Text style={styles.versionBadge}>v1.4</Text>
             </View>
             <View style={styles.welcomeContainer}>
               <Text style={styles.welcomeTitle}>

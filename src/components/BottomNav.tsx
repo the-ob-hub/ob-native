@@ -96,7 +96,7 @@ const WhiteCurveShape = () => (
   <Svg width={105.3} height={35.75} viewBox="0 0 162 55" fill="none">
     <Path
       d="M162 0.000218391C126.5 2.00098 113.085 55.001 80.5 55.001C47.9152 55.001 37.5 9.50098 0 0C35 0 47.9152 0 80.5 0C113.085 0 132.5 0.00119495 162 0.000218391Z"
-      fill="#F3F4F6"
+      fill="#000000"
     />
   </Svg>
 );
@@ -229,7 +229,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
             <TouchableOpacity
               key={index}
               style={styles.item}
-              onPress={() => onItemPress(index)}
+              onPress={() => {
+                console.log('🔵 BottomNav - Botón presionado:', { index, tabName: tab.name, activeIndex });
+                console.log('🔵 BottomNav - Llamando onItemPress con índice:', index);
+                onItemPress(index);
+                console.log('🔵 BottomNav - onItemPress ejecutado');
+              }}
               activeOpacity={0.8}
             >
               {/* Solo mostrar íconos inactivos (grises) */}
@@ -281,6 +286,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'visible',
+    zIndex: 1000,
+    elevation: 1000,
   },
   itemsContainer: {
     flexDirection: 'row',
@@ -289,6 +296,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 24,
     paddingBottom: 8,
+    zIndex: 1001,
   },
   item: {
     width: 48,
@@ -296,14 +304,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 24,
-    zIndex: 10,
+    zIndex: 1002,
   },
   bubble: {
     position: 'absolute',
     top: -22,
     width: 44,
     height: 44,
-    backgroundColor: '#000000',
+    backgroundColor: '#0066FF', // Azul igual al botón perfil
     borderRadius: 22,
     zIndex: 3,
     shadowColor: '#000000',
