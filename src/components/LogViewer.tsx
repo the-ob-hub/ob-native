@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
   const { logs, clearLogs, addLog } = useLogs();
+  const [isChecksOpen, setIsChecksOpen] = useState(false);
 
   const copyLogs = async () => {
     if (logs.length === 0) {
@@ -80,9 +81,29 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
           <View style={styles.header}>
             <Text style={styles.title}>Logs de Consola</Text>
             <View style={styles.headerButtons}>
-              <TouchableOpacity onPress={checkHealth} style={styles.healthButton}>
-                <Text style={styles.healthButtonText}>Get Health</Text>
-              </TouchableOpacity>
+              {/* Botón Checks con dropdown */}
+              <View style={styles.checksContainer}>
+                <TouchableOpacity 
+                  onPress={() => setIsChecksOpen(!isChecksOpen)} 
+                  style={styles.checksButton}
+                >
+                  <Text style={styles.checksButtonText}>Checks</Text>
+                  <Text style={styles.checksArrow}>{isChecksOpen ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+                {isChecksOpen && (
+                  <View style={styles.checksDropdown}>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        checkHealth();
+                        setIsChecksOpen(false);
+                      }} 
+                      style={styles.healthButton}
+                    >
+                      <Text style={styles.healthButtonText}>Health</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
               <TouchableOpacity onPress={copyLogs} style={styles.copyButton}>
                 <Text style={styles.copyButtonText}>Copiar</Text>
               </TouchableOpacity>
@@ -145,39 +166,76 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
+    alignItems: 'center',
+  },
+  checksContainer: {
+    position: 'relative',
+  },
+  checksButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: '#10B981',
+    borderRadius: 8,
+    gap: 4,
+  },
+  checksButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  checksArrow: {
+    color: '#FFFFFF',
+    fontSize: 10,
+  },
+  checksDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    marginTop: 4,
+    backgroundColor: '#2a2a2a',
+    borderRadius: 8,
+    minWidth: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
   },
   healthButton: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     backgroundColor: '#10B981',
     borderRadius: 8,
   },
   healthButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
   copyButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     backgroundColor: '#2563EB',
-    borderRadius: 8,
+    borderRadius: 6,
   },
   copyButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: '600',
   },
   clearButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     backgroundColor: '#333',
-    borderRadius: 8,
+    borderRadius: 6,
   },
   clearButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 11,
   },
   closeButton: {
     width: 32,
