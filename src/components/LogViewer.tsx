@@ -29,7 +29,10 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
     }
 
     try {
-      const logsText = logs.map(log => `[${log.timestamp}] ${log.message}`).join('\n');
+      const logsText = logs.map(log => {
+        const timestamp = formatTimestamp(log.timestamp);
+        return `[${timestamp}] ${log.message}`;
+      }).join('\n');
       await Clipboard.setString(logsText);
       Alert.alert('Copiado', 'Logs copiados al portapapeles');
     } catch (error) {
