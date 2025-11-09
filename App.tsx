@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingScreen } from './src/features/onboarding/ui/OnboardingScreen';
 import { MainTabs } from './src/navigation/MainTabs';
 import { COLORS } from './src/constants';
+import { LogProvider } from './src/contexts/LogContext';
 
 const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
   useEffect(() => {
@@ -68,10 +69,18 @@ function App() {
   }
 
   if (currentScreen === 'onboarding') {
-    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
+    return (
+      <LogProvider>
+        <OnboardingScreen onComplete={handleOnboardingComplete} />
+      </LogProvider>
+    );
   }
 
-  return <MainTabs />;
+  return (
+    <LogProvider>
+      <MainTabs />
+    </LogProvider>
+  );
 }
 
 const styles = StyleSheet.create({

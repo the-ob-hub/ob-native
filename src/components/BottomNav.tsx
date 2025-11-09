@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated, Dimensions, Text } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
+import { useLogs } from '../contexts/LogContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ITEM_WIDTH = SCREEN_WIDTH / 4;
@@ -107,6 +108,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
   const textOpacity = useRef(new Animated.Value(1)).current;
   const containerTranslateY = useRef(new Animated.Value(100)).current;
   const iconsOpacity = useRef(new Animated.Value(0)).current;
+  const { addLog } = useLogs();
 
   // Animación de entrada del navbar
   useEffect(() => {
@@ -230,10 +232,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
               key={index}
               style={styles.item}
               onPress={() => {
-                console.log('🔵 BottomNav - Botón presionado:', { index, tabName: tab.name, activeIndex });
-                console.log('🔵 BottomNav - Llamando onItemPress con índice:', index);
+                const msg1 = `🔵 BottomNav - Botón presionado: { index: ${index}, tabName: '${tab.name}', activeIndex: ${activeIndex} }`;
+                const msg2 = `🔵 BottomNav - Llamando onItemPress con índice: ${index}`;
+                console.log(msg1);
+                console.log(msg2);
+                addLog(msg1);
+                addLog(msg2);
                 onItemPress(index);
-                console.log('🔵 BottomNav - onItemPress ejecutado');
+                const msg3 = '🔵 BottomNav - onItemPress ejecutado';
+                console.log(msg3);
+                addLog(msg3);
               }}
               activeOpacity={0.8}
             >
