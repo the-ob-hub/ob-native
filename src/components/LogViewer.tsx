@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#333',
   },
   title: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
   },
