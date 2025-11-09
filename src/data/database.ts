@@ -209,6 +209,18 @@ class Database {
     
     console.log('✅ User deleted:', userId);
   }
+
+  /**
+   * Limpia todos los datos de la base de datos
+   */
+  async clearAllData(): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    await this.db.executeSql('DELETE FROM messages');
+    await this.db.executeSql('DELETE FROM users');
+    
+    console.log('✅ All data cleared from database');
+  }
 }
 
 export const db = new Database();

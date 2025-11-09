@@ -18,6 +18,9 @@ import { Message, OnboardingState, User } from '../../../models';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../../constants';
 import { generateId, formatDate } from '../../../utils/helpers';
 import { db } from '../../../data/database';
+import { onboardingService, OnboardingSubmitRequest, Address } from '../../../services/api/onboardingService';
+import { generateRandomUserData } from '../../../utils/generateRandomUserData';
+import { useLogs } from '../../../contexts/LogContext';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -29,7 +32,9 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [submittingToBackend, setSubmittingToBackend] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const { addLog } = useLogs();
   
   // Easter Egg: 1 tap en el logo para auto-completar
   const hasAutoFilledRef = useRef(false);
@@ -55,6 +60,184 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       return () => clearTimeout(timer);
     }
   }, [completing, onComplete]);
+
+  /**
+   * Valida que todos los campos requeridos estén presentes
+   */
+  const validateOnboardingData = (collectedData: Partial<User>): { isValid: boolean; missingFields: string[] } => {
+    const requiredFields: (keyof OnboardingSubmitRequest)[] = [
+      'email',
+      'fullName',
+      'phone',
+      'documentType',
+      'documentNumber',
+      'birthDate',
+      'nationality',
+      'address',
+      'countryOfResidence',
+      'countryOfFundsOrigin',
+    ];
+
+    const missingFields: string[] = [];
+    
+    for (const field of requiredFields) {
+      if (!collectedData[field] || String(collectedData[field]).trim() === '') {
+        missingFields.push(field);
+      }
+    }
+
+    // isPEP debe estar definido (puede ser false)
+    if (collectedData.isPEP === undefined) {
+      missingFields.push('isPEP');
+    }
+
+    return {
+      isValid: missingFields.length === 0,
+      missingFields,
+    };
+  };
+
+  /**
+   * Convierte un string de dirección a objeto Address
+   * Si ya es un objeto Address, lo retorna tal cual
+   */
+  const parseAddress = (address: string | Address | undefined): Address => {
+    // Si ya es un objeto Address, retornarlo
+    if (address && typeof address === 'object' && 'street' in address) {
+      return address as Address;
+    }
+    
+    // Si es string, intentar parsearlo o crear estructura básica
+    if (typeof address === 'string' && address.trim()) {
+      // Intentar parsear formato común: "Calle Nombre 1234, Ciudad"
+      const parts = address.split(',');
+      if (parts.length >= 2) {
+        const streetPart = parts[0].trim();
+        const cityPart = parts[1].trim();
+        
+        // Intentar extraer número de la calle
+        const streetMatch = streetPart.match(/^(.+?)\s+(\d+)$/);
+        if (streetMatch) {
+          return {
+            street: streetMatch[1].trim(),
+            number: streetMatch[2],
+            city: cityPart,
+            country: 'Argentina',
+          };
+        }
+        
+        return {
+          street: streetPart,
+          number: '',
+          city: cityPart,
+          country: 'Argentina',
+        };
+      }
+      
+      // Si no se puede parsear, usar el string completo como street
+      return {
+        street: address,
+        number: '',
+        city: '',
+        country: 'Argentina',
+      };
+    }
+    
+    // Valor por defecto
+    return {
+      street: '',
+      number: '',
+      city: '',
+      country: 'Argentina',
+    };
+  };
+
+  /**
+   * Mapea los datos recolectados al formato de la API
+   */
+  const mapToApiFormat = (collectedData: Partial<User>): OnboardingSubmitRequest => {
+    return {
+      email: collectedData.email || '',
+      fullName: collectedData.fullName || '',
+      phone: collectedData.phone || '',
+      documentType: collectedData.documentType || '',
+      documentNumber: collectedData.documentNumber || '',
+      birthDate: collectedData.birthDate || '',
+      nationality: collectedData.nationality || '',
+      address: parseAddress(collectedData.address),
+      countryOfResidence: collectedData.countryOfResidence || '',
+      countryOfFundsOrigin: collectedData.countryOfFundsOrigin || '',
+      isPEP: collectedData.isPEP || false,
+    };
+  };
+
+  /**
+   * Envía los datos al backend
+   */
+  const submitToBackend = async (collectedData: Partial<User>): Promise<{ success: boolean; userId?: string; error?: string }> => {
+    try {
+      // Validar datos
+      const validation = validateOnboardingData(collectedData);
+      if (!validation.isValid) {
+        const errorMsg = `Faltan campos requeridos: ${validation.missingFields.join(', ')}`;
+        addLog(`❌ Validación fallida: ${errorMsg}`);
+        return { success: false, error: errorMsg };
+      }
+
+      // Mapear a formato API
+      const apiData = mapToApiFormat(collectedData);
+      
+      addLog(`📝 Enviando onboarding al backend...`);
+      addLog(`📝 Datos: ${JSON.stringify(apiData).substring(0, 200)}...`);
+
+      // Enviar al backend
+      const response = await onboardingService.submitOnboarding(apiData);
+      
+      // Loggear respuesta completa
+      addLog(`📝 Respuesta del backend: ${JSON.stringify(response)}`);
+      
+      // El backend retorna la estructura: { success: true, data: { userId: "...", ... } }
+      const backendUserId = response.data?.userId;
+      
+      if (!backendUserId) {
+        addLog(`❌ El backend no retornó un userId válido. Respuesta: ${JSON.stringify(response)}`);
+        return { 
+          success: false, 
+          error: 'El backend no retornó un userId válido en la respuesta' 
+        };
+      }
+      
+      addLog(`✅ Onboarding enviado exitosamente. UserId: ${backendUserId}`);
+      addLog(`📝 Status: ${response.data?.status || 'N/A'}`);
+      
+      return {
+        success: true,
+        userId: String(backendUserId), // Asegurar que sea string
+      };
+    } catch (error) {
+      let errorMessage = 'Error desconocido';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Intentar parsear errores de validación del backend
+        if (error.message.includes('400') || error.message.includes('422')) {
+          try {
+            const errorMatch = error.message.match(/\{.*\}/);
+            if (errorMatch) {
+              const errorData = JSON.parse(errorMatch[0]);
+              errorMessage = errorData.message || errorData.error || errorMessage;
+            }
+          } catch (e) {
+            // Si no se puede parsear, usar el mensaje original
+          }
+        }
+      }
+      
+      addLog(`❌ Error al enviar onboarding: ${errorMessage}`);
+      return { success: false, error: errorMessage };
+    }
+  };
 
   const initializeOnboarding = async () => {
     try {
@@ -116,25 +299,11 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   const autoFillData = async () => {
     if (!state || completing) return;
 
-    // Datos de Diego
-    const mockData = {
-      fullName: 'Diego S. Burgos',
-      email: 'diego.burgos@ondabank.com',
-      phone: '+54 9 11 3188-5769',
-      documentType: 'DNI',
-      documentNumber: '11111111',
-      birthDate: '1990-05-15',
-      nationality: 'Argentina',
-      address: 'Melo 2883, Buenos Aires',
-      countryOfResidence: 'Argentina',
-      countryOfFundsOrigin: 'Argentina',
-      isPEP: false,
-    };
+    addLog('🎉 Auto-fill activado - Generando datos aleatorios...');
 
-    // Actualizar estado y DB
-    state.collectedData = { ...state.collectedData, ...mockData };
-    await db.updateUser(state.userId, mockData);
-    await db.updateUser(state.userId, { onboardingStatus: 'completed' });
+    // Generar datos aleatorios válidos en formato exacto de la API
+    const randomData = generateRandomUserData();
+    addLog(`📝 Datos generados: ${randomData.fullName}, ${randomData.email}`);
 
     // Mensaje del usuario
     const userMessage: Message = {
@@ -145,19 +314,23 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       timestamp: formatDate(new Date()),
     };
 
-    // Mensaje del asistente confirmando
+    // Mensaje del asistente indicando que se están enviando los datos
+    const addressDisplay = randomData.address 
+      ? `${randomData.address.street} ${randomData.address.number}, ${randomData.address.city}`
+      : '';
+    
     const assistantMessage: Message = {
       id: generateId(),
       userId: state.userId,
       role: 'assistant',
-      content: '¡Perfecto! He completado todos tus datos:\n\n' +
-        `✅ ${mockData.fullName}\n` +
-        `✅ ${mockData.documentType}: ${mockData.documentNumber}\n` +
-        `✅ Tel: ${mockData.phone}\n` +
-        `✅ ${mockData.address}\n` +
-        `✅ Residente de ${mockData.countryOfResidence}\n` +
-        `✅ No es PEP\n\n` +
-        '¡Tu cuenta está lista!',
+      content: '¡Perfecto! He generado tus datos:\n\n' +
+        `✅ ${randomData.fullName}\n` +
+        `✅ ${randomData.documentType}: ${randomData.documentNumber}\n` +
+        `✅ Tel: ${randomData.phone}\n` +
+        `✅ ${addressDisplay}\n` +
+        `✅ Residente de ${randomData.countryOfResidence}\n` +
+        `✅ ${randomData.isPEP ? 'Es PEP' : 'No es PEP'}\n\n` +
+        'Enviando datos al servidor...',
       timestamp: formatDate(new Date()),
     };
 
@@ -166,20 +339,172 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
     state.conversationHistory.push(userMessage);
     state.conversationHistory.push(assistantMessage);
-    state.currentStep = 'completed';
 
     setState({ ...state });
     setMessages(prev => [...prev, userMessage, assistantMessage]);
 
-    // Guardar en AsyncStorage
-    await AsyncStorage.setItem('currentUserId', state.userId);
-    await AsyncStorage.setItem('hasCompletedOnboarding', 'true');
-    console.log('💾 UserId guardado (auto-fill):', state.userId);
+    // ENVIAR AL BACKEND PRIMERO (esto crea el usuario en el backend)
+    setSubmittingToBackend(true);
+    
+    try {
+      addLog(`📝 Enviando datos al backend (auto-fill)...`);
+      addLog(`📝 Datos: ${JSON.stringify(randomData).substring(0, 200)}...`);
 
-    // Completar después de 2 segundos
-    setTimeout(() => {
-      setCompleting(true);
-    }, 2000);
+      // Llamar directamente al servicio de onboarding
+      const response = await onboardingService.submitOnboarding(randomData);
+      
+      // Loggear la respuesta completa para debugging
+      addLog(`📝 Respuesta completa del backend: ${JSON.stringify(response)}`);
+      
+      // El backend retorna la estructura: { success: true, data: { userId: "...", ... } }
+      const backendUserId = response.data?.userId;
+      
+      if (!backendUserId) {
+        addLog(`❌ El backend no retornó un userId válido. Respuesta: ${JSON.stringify(response)}`);
+        throw new Error('El backend no retornó un userId válido en la respuesta');
+      }
+      
+      addLog(`✅ Usuario creado en backend. UserId: ${backendUserId}`);
+      addLog(`📝 Status: ${response.data?.status || 'N/A'}`);
+      addLog(`📝 Mensaje: ${response.data?.message || 'N/A'}`);
+      
+      // Actualizar estado local con los datos y el userId del backend
+      // Convertir Address a string para guardar localmente
+      const addressString = randomData.address 
+        ? `${randomData.address.street} ${randomData.address.number}, ${randomData.address.city}`
+        : '';
+      
+      state.collectedData = { 
+        ...state.collectedData, 
+        ...randomData,
+        address: addressString, // Guardar como string localmente
+      };
+      state.userId = backendUserId; // Actualizar con el userId del backend
+      
+      // Crear/actualizar usuario en DB local con el userId del backend
+      const now = formatDate(new Date());
+      const userData: User = {
+        id: backendUserId,
+        email: randomData.email,
+        fullName: randomData.fullName,
+        phone: randomData.phone,
+        documentType: randomData.documentType,
+        documentNumber: randomData.documentNumber,
+        birthDate: randomData.birthDate,
+        nationality: randomData.nationality,
+        address: addressString, // Guardar como string
+        countryOfResidence: randomData.countryOfResidence,
+        countryOfFundsOrigin: randomData.countryOfFundsOrigin,
+        isPEP: randomData.isPEP,
+        onboardingStatus: 'completed',
+        createdAt: now,
+        updatedAt: now,
+      };
+      
+      // Verificar si el usuario local existe (usando el userId original), si no crearlo
+      // Si existe, actualizarlo con el nuevo userId del backend
+      const existingUser = await db.getUser(state.userId).catch(() => null);
+      if (existingUser) {
+        // Si el userId cambió, necesitamos crear uno nuevo con el userId del backend
+        // y opcionalmente borrar el viejo
+        await db.createUser(userData);
+        // Opcional: borrar el usuario viejo si el ID cambió
+        if (state.userId !== backendUserId) {
+          await db.deleteUser(state.userId);
+        }
+      } else {
+        await db.createUser(userData);
+      }
+      
+      // Actualizar todos los mensajes con el nuevo userId del backend
+      // (opcional, pero mejor mantener consistencia)
+      
+      // Validar que backendUserId sea válido antes de guardar
+      if (!backendUserId || backendUserId === 'undefined' || backendUserId === 'null') {
+        throw new Error('userId inválido recibido del backend');
+      }
+      
+      // Guardar userId del backend en AsyncStorage
+      await AsyncStorage.setItem('currentUserId', String(backendUserId));
+      await AsyncStorage.setItem('hasCompletedOnboarding', 'true');
+      addLog(`💾 UserId del backend guardado: ${backendUserId}`);
+
+      // Mensaje de éxito (solo si tenemos userId válido)
+      if (backendUserId) {
+        const successMessage: Message = {
+          id: generateId(),
+          userId: String(backendUserId), // Asegurar que sea string
+          role: 'assistant',
+          content: '✅ ¡Usuario creado exitosamente en el servidor! Tu cuenta está lista.',
+          timestamp: formatDate(new Date()),
+        };
+        await db.createMessage(successMessage);
+        state.conversationHistory.push(successMessage);
+        setMessages(prev => [...prev, successMessage]);
+      }
+      
+      state.currentStep = 'completed';
+      setState({ ...state });
+
+      // Completar después de 2 segundos
+      setTimeout(() => {
+        setCompleting(true);
+      }, 2000);
+      
+    } catch (error) {
+      let errorMessage = 'Error desconocido';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Intentar parsear errores de validación del backend
+        if (error.message.includes('400') || error.message.includes('422')) {
+          try {
+            const errorMatch = error.message.match(/\{.*\}/);
+            if (errorMatch) {
+              const errorData = JSON.parse(errorMatch[0]);
+              errorMessage = errorData.message || errorData.error || errorMessage;
+            }
+          } catch (e) {
+            // Si no se puede parsear, usar el mensaje original
+          }
+        }
+      }
+      
+      addLog(`❌ Error al crear usuario en backend: ${errorMessage}`);
+      
+      // Error al enviar al backend
+      // Solo crear mensaje si tenemos un userId válido
+      if (state.userId) {
+        const errorMsg: Message = {
+          id: generateId(),
+          userId: state.userId,
+          role: 'assistant',
+          content: `❌ Error al crear usuario: ${errorMessage}\n\nPor favor, intenta nuevamente.`,
+          timestamp: formatDate(new Date()),
+        };
+        await db.createMessage(errorMsg);
+        state.conversationHistory.push(errorMsg);
+        setMessages(prev => [...prev, errorMsg]);
+      } else {
+        // Si no hay userId, solo mostrar en la UI sin guardar en DB
+        const errorMsg: Message = {
+          id: generateId(),
+          userId: generateId(), // Generar un ID temporal solo para el mensaje
+          role: 'assistant',
+          content: `❌ Error al crear usuario: ${errorMessage}\n\nPor favor, intenta nuevamente.`,
+          timestamp: formatDate(new Date()),
+        };
+        state.conversationHistory.push(errorMsg);
+        setMessages(prev => [...prev, errorMsg]);
+      }
+      
+      // No marcar como completed si falló el backend
+      state.currentStep = 'confirmation';
+      setState({ ...state });
+    } finally {
+      setSubmittingToBackend(false);
+    }
   };
 
   const handleSendMessage = async (messageContent: string) => {
@@ -237,18 +562,68 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       const userConfirmed = confirmationWords.some(word => messageContent.toLowerCase().includes(word));
       
       if (state.currentStep === 'confirmation' && userConfirmed) {
-        // Completar onboarding
-        state.currentStep = 'completed';
+        // Enviar al backend antes de completar
+        setSubmittingToBackend(true);
         
-        // Actualizar status en DB
-        await db.updateUser(state.userId, { onboardingStatus: 'completed' });
+        // Mensaje indicando que se está enviando
+        const sendingMessage: Message = {
+          id: generateId(),
+          userId: state.userId,
+          role: 'assistant',
+          content: '⏳ Enviando tus datos al servidor...',
+          timestamp: formatDate(new Date()),
+        };
+        await db.createMessage(sendingMessage);
+        setMessages(prev => [...prev, sendingMessage]);
         
-        // Guardar userId en AsyncStorage para usarlo en HomeScreen
-        await AsyncStorage.setItem('currentUserId', state.userId);
-        await AsyncStorage.setItem('hasCompletedOnboarding', 'true');
-        console.log('💾 UserId guardado en AsyncStorage:', state.userId);
+        const backendResult = await submitToBackend(state.collectedData);
+        setSubmittingToBackend(false);
         
-        setCompleting(true);
+        if (backendResult.success) {
+          // Usar userId del backend si viene, sino usar el local
+          const finalUserId = backendResult.userId || state.userId;
+          
+          // Completar onboarding
+          state.currentStep = 'completed';
+          
+          // Actualizar status en DB
+          await db.updateUser(state.userId, { onboardingStatus: 'completed' });
+          
+          // Guardar userId en AsyncStorage
+          await AsyncStorage.setItem('currentUserId', finalUserId);
+          await AsyncStorage.setItem('hasCompletedOnboarding', 'true');
+          addLog(`💾 UserId guardado en AsyncStorage: ${finalUserId}`);
+          
+          // Mensaje de éxito
+          const successMessage: Message = {
+            id: generateId(),
+            userId: state.userId,
+            role: 'assistant',
+            content: '✅ ¡Perfecto! Tus datos se enviaron correctamente. Tu cuenta está lista.',
+            timestamp: formatDate(new Date()),
+          };
+          await db.createMessage(successMessage);
+          state.conversationHistory.push(successMessage);
+          setMessages(prev => [...prev, successMessage]);
+          
+          setCompleting(true);
+        } else {
+          // Error al enviar al backend
+          const errorMessage: Message = {
+            id: generateId(),
+            userId: state.userId,
+            role: 'assistant',
+            content: `❌ Error al enviar datos: ${backendResult.error}\n\nPor favor, verifica tus datos e intenta nuevamente.`,
+            timestamp: formatDate(new Date()),
+          };
+          await db.createMessage(errorMessage);
+          state.conversationHistory.push(errorMessage);
+          setMessages(prev => [...prev, errorMessage]);
+          
+          // No marcar como completed si falló el backend
+          state.currentStep = 'confirmation';
+          setState({ ...state });
+        }
       }
 
       const assistantMessage: Message = {
@@ -328,10 +703,17 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         </View>
       )}
 
+      {submittingToBackend && (
+        <View style={styles.thinkingIndicator}>
+          <ActivityIndicator size="small" color={COLORS.primary} />
+          <Text style={styles.thinkingText}>Enviando datos al servidor...</Text>
+        </View>
+      )}
+
       <ChatInput
         onSend={handleSendMessage}
-        disabled={loading || completing}
-        placeholder={completing ? 'Onboarding completado' : 'Escribe un mensaje...'}
+        disabled={loading || completing || submittingToBackend}
+        placeholder={completing ? 'Onboarding completado' : submittingToBackend ? 'Enviando datos...' : 'Escribe un mensaje...'}
       />
     </KeyboardAvoidingView>
   );

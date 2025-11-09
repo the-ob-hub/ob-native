@@ -10,7 +10,11 @@ import { db } from '../data/database';
 import { healthService } from '../services/api/healthService';
 import { useLogs } from '../contexts/LogContext';
 
-export const HomeScreen: React.FC = () => {
+interface HomeScreenProps {
+  onLogout?: () => void;
+}
+
+export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -162,6 +166,7 @@ export const HomeScreen: React.FC = () => {
             visible={isProfileVisible}
             onClose={() => setIsProfileVisible(false)}
             user={currentUser}
+            onLogout={onLogout}
           />
         </>
       )}

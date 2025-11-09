@@ -21,6 +21,7 @@ interface ProfileSheetProps {
   visible: boolean;
   onClose: () => void;
   user: User | null;
+  onLogout?: () => void;
 }
 
 // Icono de copiar minimalista similar al navbar
@@ -43,7 +44,7 @@ const CopyIcon = () => (
   </Svg>
 );
 
-export const ProfileSheet: React.FC<ProfileSheetProps> = ({ visible, onClose, user }) => {
+export const ProfileSheet: React.FC<ProfileSheetProps> = ({ visible, onClose, user, onLogout }) => {
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
@@ -239,6 +240,38 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({ visible, onClose, us
               <Text style={styles.actionButtonText}>Invita amigos</Text>
             </TouchableOpacity>
 
+            {/* Separador antes del logout */}
+            <View style={styles.separator} />
+
+            {/* Botón de Logout */}
+            <TouchableOpacity 
+              style={styles.logoutButton}
+              onPress={() => {
+                Alert.alert(
+                  'Cerrar sesión',
+                  '¿Estás seguro de que quieres cerrar sesión? Se borrarán todos los datos locales.',
+                  [
+                    {
+                      text: 'Cancelar',
+                      style: 'cancel',
+                    },
+                    {
+                      text: 'Cerrar sesión',
+                      style: 'destructive',
+                      onPress: () => {
+                        onClose();
+                        if (onLogout) {
+                          onLogout();
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+            </TouchableOpacity>
+
             {/* Datos personales */}
             <View style={styles.dataSection}>
               <Text style={styles.sectionTitle}>Datos personales</Text>
@@ -425,6 +458,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#1F2937',
+  },
+  logoutButton: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#DC2626',
   },
 });
 

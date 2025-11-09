@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { logger } from '../utils/logger';
 
 interface LogEntry {
   id: string;
@@ -29,6 +30,14 @@ export const LogProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const clearLogs = useCallback(() => {
     setLogs([]);
   }, []);
+
+  // Configurar el logger singleton para que use addLog
+  useEffect(() => {
+    logger.setLogFunction(addLog);
+    return () => {
+      logger.setLogFunction(null);
+    };
+  }, [addLog]);
 
   return (
     <LogContext.Provider value={{ logs, addLog, clearLogs }}>

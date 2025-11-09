@@ -19,7 +19,11 @@ const screens = [
   AgentScreen,
 ];
 
-export const MainTabs: React.FC = () => {
+interface MainTabsProps {
+  onLogout?: () => void;
+}
+
+export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isLogViewerVisible, setIsLogViewerVisible] = useState(false);
   const translateX = useRef(new Animated.Value(0)).current;
@@ -79,7 +83,11 @@ export const MainTabs: React.FC = () => {
       >
         {screens.map((ScreenComponent, index) => (
           <View key={index} style={[styles.screenWrapper, { width: SCREEN_WIDTH }]}>
-            <ScreenComponent />
+            {index === 0 ? (
+              <ScreenComponent onLogout={onLogout} />
+            ) : (
+              <ScreenComponent />
+            )}
           </View>
         ))}
       </Animated.View>
@@ -92,7 +100,7 @@ export const MainTabs: React.FC = () => {
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-        <Text style={styles.versionBadgeText}>v1.9</Text>
+        <Text style={styles.versionBadgeText}>v1.10</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}

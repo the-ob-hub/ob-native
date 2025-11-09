@@ -64,6 +64,28 @@ function App() {
     setCurrentScreen('main');
   };
 
+  const handleLogout = async () => {
+    try {
+      // Limpiar AsyncStorage
+      await AsyncStorage.removeItem('hasCompletedOnboarding');
+      await AsyncStorage.removeItem('currentUserId');
+      
+      // Limpiar base de datos SQLite
+      const { db } = await import('./src/data/database');
+      await db.init();
+      await db.clearAllData();
+      
+      console.log('✅ Logout completado - Datos limpiados');
+      
+      // Volver al onboarding
+      setCurrentScreen('onboarding');
+    } catch (error) {
+      console.error('❌ Error en logout:', error);
+      // Aún así, intentar volver al onboarding
+      setCurrentScreen('onboarding');
+    }
+  };
+
   if (currentScreen === 'splash') {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
@@ -78,7 +100,7 @@ function App() {
 
   return (
     <LogProvider>
-      <MainTabs />
+      <MainTabs onLogout={handleLogout} />
     </LogProvider>
   );
 }

@@ -1,6 +1,7 @@
 /**
  * Configuración base para llamadas API
  */
+import { logger } from '../../utils/logger';
 
 // Base URL del backend real
 const BASE_URL = 'http://ec2-34-224-57-79.compute-1.amazonaws.com:3000';
@@ -37,11 +38,12 @@ class ApiClient {
     // Log de request
     const logRequest = `🌐 API ${method} ${endpoint}`;
     const logUrl = `URL: ${url}`;
-    console.log(logRequest);
-    console.log(logUrl);
+    logger.log(logRequest);
+    logger.log(logUrl);
     if (options.body) {
       const bodyStr = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
-      console.log('Body:', bodyStr);
+      const bodyPreview = bodyStr.length > 300 ? bodyStr.substring(0, 300) + '...' : bodyStr;
+      logger.log(`Body: ${bodyPreview}`);
     }
 
     try {
@@ -55,23 +57,23 @@ class ApiClient {
 
       // Log de response
       const logResponse = `✅ API ${method} ${endpoint} - ${response.status} ${response.statusText}`;
-      console.log(logResponse);
+      logger.log(logResponse);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorLog = `❌ API Error ${method} ${endpoint} - ${response.status}: ${JSON.stringify(errorData)}`;
-        console.error(errorLog);
+        logger.error(errorLog);
         throw new Error(`API Error: ${response.status} - ${JSON.stringify(errorData)}`);
       }
 
       const data = await response.json();
       const dataPreview = JSON.stringify(data).substring(0, 200);
-      console.log('Response data:', dataPreview);
+      logger.log(`Response: ${dataPreview}${JSON.stringify(data).length > 200 ? '...' : ''}`);
       
       return data as T;
     } catch (error) {
       const errorLog = `❌ API Request Failed ${method} ${endpoint}: ${error instanceof Error ? error.message : String(error)}`;
-      console.error(errorLog);
+      logger.error(errorLog);
       throw error;
     }
   }

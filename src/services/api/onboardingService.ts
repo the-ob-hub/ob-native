@@ -3,6 +3,18 @@
  */
 import { apiClient } from './base';
 
+/**
+ * Estructura de dirección esperada por el backend
+ */
+export interface Address {
+  street: string;
+  number: string;
+  city: string;
+  postalCode?: string;
+  province?: string;
+  country?: string;
+}
+
 export interface OnboardingSubmitRequest {
   email: string;
   fullName: string;
@@ -11,18 +23,40 @@ export interface OnboardingSubmitRequest {
   documentNumber: string;
   birthDate: string;
   nationality: string;
-  address: string;
+  address: Address; // Objeto estructurado, no string
   countryOfResidence: string;
   countryOfFundsOrigin: string;
   isPEP: boolean;
   // Agregar más campos según sea necesario
 }
 
-export interface OnboardingSubmitResponse {
+/**
+ * Estructura de validaciones del backend
+ */
+export interface OnboardingValidations {
+  aml: string;
+  biometric: string;
+  documentOCR: string;
+  pep: string;
+}
+
+/**
+ * Datos del usuario creado en el backend
+ */
+export interface OnboardingData {
   userId: string;
   status: string;
   message?: string;
-  // Agregar más campos según la respuesta real
+  identityPendingManualReview?: boolean;
+  validations?: OnboardingValidations;
+}
+
+/**
+ * Respuesta completa del backend
+ */
+export interface OnboardingSubmitResponse {
+  success: boolean;
+  data: OnboardingData;
 }
 
 export const onboardingService = {
