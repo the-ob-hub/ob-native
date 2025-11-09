@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING } from '../constants';
 import { SkeletonScreen } from '../components/SkeletonScreen';
@@ -7,17 +7,42 @@ import { UserAvatar } from '../components/UserAvatar';
 import { ProfileSheet } from '../components/ProfileSheet';
 import { User } from '../models';
 import { db } from '../data/database';
+import { healthService } from '../services/api/healthService';
+import { useLogs } from '../contexts/LogContext';
 
 export const HomeScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [healthStatus, setHealthStatus] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const { addLog } = useLogs();
 
   useEffect(() => {
     loadUserData();
   }, []);
+
+  const testHealthAPI = async () => {
+    try {
+      const logMsg = '🧪 Testing GET /health...';
+      console.log(logMsg);
+      addLog(logMsg);
+      
+      const result = await healthService.checkHealth();
+      
+      const successMsg = `✅ Health API Success: ${JSON.stringify(result)}`;
+      console.log(successMsg);
+      addLog(successMsg);
+      
+      setHealthStatus(JSON.stringify(result, null, 2));
+    } catch (error) {
+      const errorMsg = `❌ Health API Error: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(errorMsg);
+      addLog(errorMsg);
+      setHealthStatus(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
 
   const loadUserData = async () => {
     try {
@@ -114,6 +139,22 @@ export const HomeScreen: React.FC = () => {
                 ¡Bienvenido{currentUser?.fullName ? `, ${currentUser.fullName.split(' ')[0]}` : ''}!
               </Text>
               <Text style={styles.subtitle}>Esta es tu Home.</Text>
+              
+              {/* Botón de prueba para API */}
+              <TouchableOpacity 
+                style={styles.testButton}
+                onPress={testHealthAPI}
+              >
+                <Text style={styles.testButtonText}>🏥 Probar API: GET /health</Text>
+              </TouchableOpacity>
+              
+              {/* Mostrar health status si está disponible */}
+              {healthStatus && (
+                <View style={styles.healthContainer}>
+                  <Text style={styles.healthTitle}>🏥 Health Check:</Text>
+                  <Text style={styles.healthText}>{healthStatus}</Text>
+                </View>
+              )}
             </View>
           </Animated.View>
 
@@ -173,6 +214,41 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
+    marginBottom: SPACING.lg,
+  },
+  testButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderRadius: 12,
+    marginTop: SPACING.md,
+  },
+  testButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  healthContainer: {
+    marginTop: SPACING.lg,
+    padding: SPACING.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    minWidth: 200,
+    maxWidth: '90%',
+  },
+  healthTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.white,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  healthText: {
+    fontSize: 12,
+    color: COLORS.white,
+    fontFamily: 'monospace',
+    textAlign: 'left',
   },
 });
 
