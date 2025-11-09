@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
+  Alert,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { useLogs } from '../contexts/LogContext';
 
 interface LogViewerProps {
@@ -19,6 +21,21 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
   const { logs, clearLogs } = useLogs();
+
+  const copyLogs = async () => {
+    if (logs.length === 0) {
+      Alert.alert('Sin logs', 'No hay logs para copiar');
+      return;
+    }
+
+    try {
+      const logsText = logs.map(log => `[${log.timestamp}] ${log.message}`).join('\n');
+      await Clipboard.setString(logsText);
+      Alert.alert('Copiado', 'Logs copiados al portapapeles');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron copiar los logs');
+    }
+  };
 
   const formatTimestamp = (date: Date) => {
     return date.toLocaleTimeString('es-ES', {
@@ -41,6 +58,9 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
           <View style={styles.header}>
             <Text style={styles.title}>Logs de Consola</Text>
             <View style={styles.headerButtons}>
+              <TouchableOpacity onPress={copyLogs} style={styles.copyButton}>
+                <Text style={styles.copyButtonText}>Copiar</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={clearLogs} style={styles.clearButton}>
                 <Text style={styles.clearButtonText}>Limpiar</Text>
               </TouchableOpacity>
@@ -101,6 +121,17 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: 'row',
     gap: 12,
+  },
+  copyButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+  },
+  copyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   clearButton: {
     paddingHorizontal: 12,
