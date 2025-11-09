@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { useLogs } from '../contexts/LogContext';
+import { healthService } from '../services/api/healthService';
 
 interface LogViewerProps {
   visible: boolean;
@@ -20,7 +21,7 @@ interface LogViewerProps {
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
-  const { logs, clearLogs } = useLogs();
+  const { logs, clearLogs, addLog } = useLogs();
 
   const copyLogs = async () => {
     if (logs.length === 0) {
@@ -37,6 +38,24 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
       Alert.alert('Copiado', 'Logs copiados al portapapeles');
     } catch (error) {
       Alert.alert('Error', 'No se pudieron copiar los logs');
+    }
+  };
+
+  const checkHealth = async () => {
+    try {
+      addLog('🏥 GET /health - Verificando estado del servidor...');
+      
+      const result = await healthService.checkHealth();
+      
+      addLog(`✅ Health Check OK`);
+      addLog(`📊 Status: ${result.status || 'N/A'}`);
+      if (result.database) addLog(`💾 Database: ${result.database}`);
+      if (result.service) addLog(`⚙️ Service: ${result.service}`);
+      if (result.timestamp) addLog(`🕐 Timestamp: ${result.timestamp}`);
+      addLog(`📦 Response: ${JSON.stringify(result)}`);
+    } catch (error) {
+      const errorMsg = `❌ Health Check Error: ${error instanceof Error ? error.message : String(error)}`;
+      addLog(errorMsg);
     }
   };
 
@@ -61,6 +80,9 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
           <View style={styles.header}>
             <Text style={styles.title}>Logs de Consola</Text>
             <View style={styles.headerButtons}>
+              <TouchableOpacity onPress={checkHealth} style={styles.healthButton}>
+                <Text style={styles.healthButtonText}>Get Health</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={copyLogs} style={styles.copyButton}>
                 <Text style={styles.copyButtonText}>Copiar</Text>
               </TouchableOpacity>
@@ -124,6 +146,17 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: 'row',
     gap: 12,
+  },
+  healthButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#10B981',
+    borderRadius: 8,
+  },
+  healthButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   copyButton: {
     paddingHorizontal: 12,
