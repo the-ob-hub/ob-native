@@ -3,15 +3,6 @@
  */
 import { apiClient } from './base';
 
-export interface PendingUser {
-  id: string;
-  email?: string;
-  fullName?: string;
-  status?: string;
-  createdAt?: string;
-  // Agregar más campos según la respuesta real
-}
-
 export interface UserDetail {
   id: string;
   email?: string;
@@ -32,22 +23,6 @@ export interface UserDetail {
 }
 
 export const userService = {
-  /**
-   * Obtiene usuarios pendientes de revisión
-   * GET /api/v1/users/pending-review
-   */
-  async getPendingReviewUsers(): Promise<PendingUser[]> {
-    try {
-      console.log('👥 UserService - Obteniendo usuarios pendientes...');
-      const users = await apiClient.get<PendingUser[]>('/api/v1/users/pending-review');
-      console.log('👥 UserService - Usuarios obtenidos:', users);
-      return users;
-    } catch (error) {
-      console.error('❌ UserService - Error al obtener usuarios pendientes:', error);
-      throw error;
-    }
-  },
-
   /**
    * Obtiene un usuario por ID
    * GET /api/v1/users/:userId
