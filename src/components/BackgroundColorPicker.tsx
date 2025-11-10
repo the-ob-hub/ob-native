@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: -1, // Debajo de todo para no bloquear inputs, pero puede capturar LongPress desde el fondo
+    zIndex: 0, // Mismo nivel que el fondo, pero las pantallas (zIndex 1) están por encima
     backgroundColor: 'transparent',
   },
   colorPickerContainer: {
