@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.md,
-    paddingBottom: SPACING.sm,
+    paddingBottom: SPACING.md,
     backgroundColor: 'transparent',
     borderTopWidth: 0,
   },
