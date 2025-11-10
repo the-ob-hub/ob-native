@@ -275,6 +275,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
       <Animated.View
         style={[
           styles.activeIconContainer,
+          activeIndex === 3 && styles.agentIconOffset,
           {
             transform: [{ translateX: bubblePosition }],
           },
@@ -368,6 +369,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 4,
     pointerEvents: 'none',
+  },
+  agentIconOffset: {
+    marginLeft: -3,
+    marginTop: 3,
   },
   activeTextContainer: {
     position: 'absolute',
