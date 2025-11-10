@@ -93,8 +93,7 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
         ))}
       </Animated.View>
 
-      {/* Selector de color de fondo - activado desde el avatar */}
-      <BackgroundColorPicker />
+      {/* Selector de color de fondo - ahora renderizado dentro del HomeScreen */}
 
       <BottomNav activeIndex={activeIndex} onItemPress={handleItemPress} />
 
@@ -104,7 +103,7 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-        <Text style={styles.versionBadgeText}>v1.53</Text>
+        <Text style={styles.versionBadgeText}>v1.54</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}

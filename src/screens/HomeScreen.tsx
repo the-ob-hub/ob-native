@@ -5,6 +5,7 @@ import { COLORS, SPACING } from '../constants';
 import { SkeletonScreen } from '../components/SkeletonScreen';
 import { UserAvatar } from '../components/UserAvatar';
 import { ProfileSheet } from '../components/ProfileSheet';
+import { ColorPickerCircles } from '../components/ColorPickerCircles';
 import { User } from '../models';
 import { db } from '../data/database';
 import { useBackgroundColor } from '../contexts/BackgroundColorContext';
@@ -134,11 +135,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
             ]}
           >
             <View style={styles.header} ref={avatarRef} onLayout={handleAvatarLayout}>
-              <UserAvatar
-                fullName={currentUser?.fullName}
-                onPress={() => setIsProfileVisible(true)}
-                onLongPress={handleAvatarLongPress}
-              />
+              <View style={styles.avatarRow}>
+                <UserAvatar
+                  fullName={currentUser?.fullName}
+                  onPress={() => setIsProfileVisible(true)}
+                  onLongPress={handleAvatarLongPress}
+                />
+                <ColorPickerCircles />
+              </View>
             </View>
             <View style={styles.welcomeContainer}>
               <Text style={styles.welcomeTitle}>
@@ -177,6 +181,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  avatarRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   versionBadge: {
