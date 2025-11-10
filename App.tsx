@@ -5,6 +5,7 @@ import { OnboardingScreen } from './src/features/onboarding/ui/OnboardingScreen'
 import { MainTabs } from './src/navigation/MainTabs';
 import { COLORS } from './src/constants';
 import { LogProvider } from './src/contexts/LogContext';
+import { BackgroundColorProvider } from './src/contexts/BackgroundColorContext';
 
 const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
   useEffect(() => {
@@ -93,14 +94,18 @@ function App() {
   if (currentScreen === 'onboarding') {
     return (
       <LogProvider>
-        <OnboardingScreen onComplete={handleOnboardingComplete} />
+        <BackgroundColorProvider>
+          <OnboardingScreen onComplete={handleOnboardingComplete} />
+        </BackgroundColorProvider>
       </LogProvider>
     );
   }
 
   return (
     <LogProvider>
-      <MainTabs onLogout={handleLogout} />
+      <BackgroundColorProvider>
+        <MainTabs onLogout={handleLogout} />
+      </BackgroundColorProvider>
     </LogProvider>
   );
 }
