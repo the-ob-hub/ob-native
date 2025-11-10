@@ -25,19 +25,22 @@ export const BackgroundColorPicker: React.FC = () => {
   }));
 
   // Posición inicial (avatar) y final (a la derecha)
-  const avatarX = avatarPosition?.x || SPACING.lg + 20; // Posición del avatar (padding + mitad del avatar)
-  const avatarY = avatarPosition?.y || 60 + 20; // paddingTop + mitad del avatar
-  const startX = avatarX;
+  const avatarSize = 40; // Mismo tamaño que el avatar
+  const avatarX = avatarPosition?.x || SPACING.lg + avatarSize / 2; // Posición del centro del avatar
+  const avatarY = avatarPosition?.y || 60 + avatarSize / 2; // paddingTop + mitad del avatar
+  const startX = avatarX; // Centro del avatar (punto de origen)
   const startY = avatarY;
-  const itemSpacing = 60; // Espacio entre items
-  const itemSize = 50;
+  const distanceFromAvatar = SPACING.sm; // Distancia entre avatar y primer círculo
+  const itemSpacing = avatarSize + distanceFromAvatar; // Distancia entre centros de círculos (misma que avatar-primer círculo)
+  const itemSize = avatarSize; // Mismo tamaño que el avatar
 
   useEffect(() => {
     if (showColorPicker && avatarPosition) {
       // Animar cada selector con delay escalonado
       animations.forEach((anim, index) => {
         const delay = index * 100; // 100ms entre cada animación
-        const finalX = startX + 60 + index * itemSpacing; // Empezar 60px a la derecha del avatar
+        // Calcular posición final: centro del avatar + radio del avatar + distancia + radio del círculo + espaciado * índice
+        const finalX = startX + avatarSize / 2 + distanceFromAvatar + avatarSize / 2 + index * itemSpacing;
 
         Animated.parallel([
           Animated.spring(anim.scale, {
@@ -186,25 +189,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gradientCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     marginBottom: SPACING.xs,
   },
   originalCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     marginBottom: SPACING.xs,
     borderWidth: 2,
     borderColor: COLORS.white,
   },
   originalText: {
     color: COLORS.white,
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   gradientLabel: {
