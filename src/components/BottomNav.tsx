@@ -366,16 +366,17 @@ const styles = StyleSheet.create({
   activeIconContainer: {
     position: 'absolute',
     top: -22,
-    width: 47,
-    height: 47,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 4,
     pointerEvents: 'none',
   },
   agentIconOffset: {
-    marginLeft: -3,
-    marginTop: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ translateX: -3 }, { translateY: 3 }],
   },
   activeTextContainer: {
     position: 'absolute',
