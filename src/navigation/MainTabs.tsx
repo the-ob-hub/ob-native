@@ -74,9 +74,6 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
         <SharedBackground />
       </Animated.View>
 
-      {/* Selector de color de fondo - LongPress de 3 segundos (antes de las pantallas) */}
-      <BackgroundColorPicker />
-
       {/* Pantallas */}
       <Animated.View
         style={[
@@ -95,6 +92,9 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
           </View>
         ))}
       </Animated.View>
+
+      {/* Selector de color de fondo - LongPress de 1.5 segundos (después de las pantallas) */}
+      <BackgroundColorPicker />
 
       <BottomNav activeIndex={activeIndex} onItemPress={handleItemPress} />
 

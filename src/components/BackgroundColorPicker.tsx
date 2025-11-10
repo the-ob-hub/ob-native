@@ -68,7 +68,6 @@ export const BackgroundColorPicker: React.FC = () => {
           style={styles.touchableArea}
           onLongPress={handleLongPress}
           delayLongPress={1500}
-          pointerEvents="box-none"
         />
       )}
 
@@ -137,7 +136,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 0, // Debajo de las pantallas para no bloquear toques
+    zIndex: 0.5, // Entre fondo (0) y pantallas (1) para capturar LongPress sin bloquear inputs
     backgroundColor: 'transparent',
   },
   colorPickerContainer: {
