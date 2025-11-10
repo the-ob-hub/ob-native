@@ -6,6 +6,7 @@ import { COLORS, SPACING } from '../constants';
 
 const gradientOptions = [
   { name: 'original', label: 'Original', gradient: BACKGROUND_GRADIENTS.original },
+  { name: 'dark', label: 'Oscuro', gradient: BACKGROUND_GRADIENTS.dark },
   { name: 'blue', label: 'Azul', gradient: BACKGROUND_GRADIENTS.blue },
   { name: 'purple', label: 'Morado', gradient: BACKGROUND_GRADIENTS.purple },
   { name: 'orange', label: 'Naranja', gradient: BACKGROUND_GRADIENTS.orange },

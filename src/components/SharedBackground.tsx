@@ -30,7 +30,13 @@ export const SharedBackground: React.FC = () => {
           style={styles.gradientOverlay}
         >
           <Defs>
-            <SvgLinearGradient id="gradientOverlay" x1="0%" y1="0%" x2="0%" y2="100%">
+            <SvgLinearGradient 
+              id="gradientOverlay" 
+              x1={`${gradient.start?.x ? gradient.start.x * 100 : 0}%`} 
+              y1={`${gradient.start?.y ? gradient.start.y * 100 : 0}%`} 
+              x2={`${gradient.end?.x ? gradient.end.x * 100 : 0}%`} 
+              y2={`${gradient.end?.y ? gradient.end.y * 100 : 100}%`}
+            >
               {gradient.colors.map((color, index) => (
                 <Stop
                   key={index}

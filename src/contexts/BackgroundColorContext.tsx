@@ -23,6 +23,11 @@ export const BACKGROUND_GRADIENTS: Record<string, GradientColor> = {
   original: {
     colors: ['transparent'], // Sin overlay, muestra la imagen original
   },
+  dark: {
+    colors: ['#000000', '#1A0033', '#4A0066', '#8B1FA2', '#CC5500'], // Negro → Púrpura oscuro → Magenta → Naranja/Rojo
+    start: { x: 0, y: 0 },
+    end: { x: 1, y: 1 }, // Gradiente diagonal hacia la esquina inferior derecha
+  },
   blue: {
     colors: ['#0066FF', '#0040CC', '#001A99'],
     start: { x: 0, y: 0 },
