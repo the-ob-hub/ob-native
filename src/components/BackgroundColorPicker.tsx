@@ -96,7 +96,7 @@ export const BackgroundColorPicker: React.FC = () => {
                     <Text style={styles.originalText}>O</Text>
                   </View>
                 ) : (
-                  <Svg width={60} height={60} style={styles.gradientCircle}>
+                  <Svg width={50} height={50} style={styles.gradientCircle}>
                     <Defs>
                       <SvgLinearGradient id={`gradient-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
                         {option.gradient.colors.map((color, colorIndex) => (
@@ -110,12 +110,12 @@ export const BackgroundColorPicker: React.FC = () => {
                       </SvgLinearGradient>
                     </Defs>
                     <Circle
-                      cx="30"
-                      cy="30"
-                      r="27"
+                      cx="25"
+                      cy="25"
+                      r="23"
                       fill={`url(#gradient-${index})`}
                       stroke={COLORS.white}
-                      strokeWidth="3"
+                      strokeWidth="2"
                     />
                   </Svg>
                 )}
@@ -141,12 +141,12 @@ const styles = StyleSheet.create({
   },
   colorPickerContainer: {
     position: 'absolute',
-    top: SCREEN_HEIGHT / 2 - 120,
-    left: SCREEN_WIDTH / 2 - 180,
-    width: 360,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    top: SCREEN_HEIGHT / 2 - 60,
+    left: SCREEN_WIDTH / 2 - 140,
+    width: 280,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.lg,
+    padding: SPACING.md,
     alignItems: 'center',
     zIndex: 10000,
     elevation: 10,
@@ -157,45 +157,45 @@ const styles = StyleSheet.create({
   },
   colorPickerTitle: {
     color: COLORS.white,
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   gradientOptionsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: SPACING.md,
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   gradientOption: {
     alignItems: 'center',
-    width: 70,
+    width: 55,
   },
   gradientCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: SPACING.sm,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginBottom: SPACING.xs,
   },
   originalCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: SPACING.sm,
-    borderWidth: 3,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginBottom: SPACING.xs,
+    borderWidth: 2,
     borderColor: COLORS.white,
   },
   originalText: {
     color: COLORS.white,
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
   },
   gradientLabel: {
     color: COLORS.white,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '500',
     textAlign: 'center',
   },
