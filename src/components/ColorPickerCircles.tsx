@@ -136,11 +136,11 @@ export const ColorPickerCircles: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
+    position: 'absolute', // Posicionamiento absoluto para no afectar el layout
+    left: avatarSize + SPACING.sm, // Posición a la derecha del avatar
+    top: avatarSize * 0.2 - 3, // 20% más abajo menos 3px (más arriba)
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: SPACING.sm, // Espacio desde el avatar
-    alignSelf: 'flex-start', // Evitar que afecte al avatar
-    marginTop: avatarSize * 0.2, // 20% más abajo (solo los círculos)
   },
   gradientOptionContainer: {
     alignItems: 'center',
