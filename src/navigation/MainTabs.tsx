@@ -63,7 +63,7 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
 
   return (
     <View style={styles.container}>
-      {/* Fondo compartido animado para las primeras 3 pantallas */}
+      {/* Fondo compartido animado para las 4 pantallas */}
       <Animated.View
         style={[
           styles.backgroundContainer,
@@ -100,7 +100,7 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-        <Text style={styles.versionBadgeText}>v1.20</Text>
+        <Text style={styles.versionBadgeText}>v1.21</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}

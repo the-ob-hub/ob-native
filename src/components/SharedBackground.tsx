@@ -6,7 +6,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const SharedBackground: React.FC = () => {
   return (
-    <Svg height={SCREEN_HEIGHT} width={SCREEN_WIDTH * 3} style={styles.svg}>
+    <Svg height={SCREEN_HEIGHT} width={SCREEN_WIDTH * 4} style={styles.svg}>
       <Defs>
         <LinearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="#FF8C00" stopOpacity="1" />
@@ -16,8 +16,8 @@ export const SharedBackground: React.FC = () => {
         </LinearGradient>
       </Defs>
 
-      {/* Rectángulo con gradiente que cubre las 3 pantallas */}
-      <Rect x="0" y="0" width={SCREEN_WIDTH * 3} height={SCREEN_HEIGHT} fill="url(#grad)" />
+      {/* Rectángulo con gradiente que cubre las 4 pantallas */}
+      <Rect x="0" y="0" width={SCREEN_WIDTH * 4} height={SCREEN_HEIGHT} fill="url(#grad)" />
 
       {/* Círculos decorativos - Pantalla 1 (Home) */}
       <Circle cx={30} cy={30} r={30} fill="rgba(255, 255, 255, 0.15)" />
@@ -42,6 +42,14 @@ export const SharedBackground: React.FC = () => {
       <Circle cx={SCREEN_WIDTH * 2.15} cy={280} r={35} fill="rgba(255, 255, 255, 0.1)" />
       <Circle cx={SCREEN_WIDTH * 2.6} cy={450} r={38} fill="rgba(255, 255, 255, 0.09)" />
       <Circle cx={SCREEN_WIDTH * 2.3} cy={650} r={40} fill="rgba(255, 255, 255, 0.12)" />
+
+      {/* Círculos decorativos - Pantalla 4 (Agent) */}
+      <Circle cx={SCREEN_WIDTH * 3 + 35} cy={45} r={36} fill="rgba(255, 255, 255, 0.14)" />
+      <Circle cx={SCREEN_WIDTH * 3.65} cy={170} r={42} fill="rgba(255, 255, 255, 0.12)" />
+      <Circle cx={SCREEN_WIDTH * 3.35} cy={100} r={33} fill="rgba(255, 255, 255, 0.16)" />
+      <Circle cx={SCREEN_WIDTH * 3.15} cy={300} r={37} fill="rgba(255, 255, 255, 0.11)" />
+      <Circle cx={SCREEN_WIDTH * 3.55} cy={480} r={39} fill="rgba(255, 255, 255, 0.1)" />
+      <Circle cx={SCREEN_WIDTH * 3.25} cy={660} r={41} fill="rgba(255, 255, 255, 0.13)" />
     </Svg>
   );
 };

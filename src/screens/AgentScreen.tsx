@@ -121,7 +121,7 @@ export const AgentScreen: React.FC = () => {
             value={inputText}
             onChangeText={setInputText}
             placeholder="Escribe un mensaje..."
-            placeholderTextColor={COLORS.textSecondary}
+            placeholderTextColor="rgba(255, 255, 255, 0.6)"
             multiline
             maxLength={500}
           />
@@ -141,24 +141,23 @@ export const AgentScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: 'transparent',
   },
   header: {
     paddingTop: 60,
     paddingBottom: SPACING.lg,
     paddingHorizontal: SPACING.lg,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.background,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 0,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: COLORS.primary,
+    color: COLORS.white,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: 'rgba(255, 255, 255, 0.9)',
     marginTop: SPACING.xs,
   },
   messagesContainer: {
@@ -232,34 +231,33 @@ const styles = StyleSheet.create({
   },
   typingText: {
     marginLeft: SPACING.sm,
-    color: COLORS.textSecondary,
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 14,
   },
   inputContainer: {
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     paddingBottom: 100, // Espacio para el navbar
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.background,
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: COLORS.background,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: BORDER_RADIUS.xl,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 2,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: COLORS.text,
+    color: COLORS.white,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.sm,
     marginRight: SPACING.sm,
