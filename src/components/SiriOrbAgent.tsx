@@ -12,7 +12,8 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
   isActive = false 
 }) => {
   const center = size / 2;
-  const circleRadius = size * 0.35;
+  // Circle radius matches the bubble size (44px diameter = 22px radius)
+  const circleRadius = 22;
 
   // Eyes blink animation - random timing
   const eyesOpacity = useRef(new Animated.Value(1)).current;
