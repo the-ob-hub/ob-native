@@ -12,9 +12,7 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
   isActive = false 
 }) => {
   const center = size / 2;
-  const bubbleWidth = size * 0.65;
-  const bubbleHeight = size * 0.65;
-  const cornerRadius = size * 0.25;
+  const circleRadius = size * 0.35;
 
   // Eyes blink animation - random timing
   const eyesOpacity = useRef(new Animated.Value(1)).current;
@@ -67,12 +65,10 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
     };
   }, []);
 
-  // Speech bubble path
-  const bubbleX = center - bubbleWidth / 2;
-  const bubbleY = center - bubbleHeight / 2;
-  const tailSize = size * 0.08;
-  const tailX = center + bubbleWidth * 0.25;
-  const tailY = center + bubbleHeight / 2;
+  // Tail (patita) position - small triangle pointing down-right
+  const tailSize = size * 0.06;
+  const tailX = center + circleRadius * 0.4;
+  const tailY = center + circleRadius * 0.7;
 
   // Eye dimensions - vertical ovals
   const eyeWidth = size * 0.08;
@@ -98,42 +94,29 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
           </RadialGradient>
         </Defs>
 
-        {/* Speech bubble */}
+        {/* Main circle */}
         <G>
-          {/* Main bubble body */}
-          <Path
-            d={`M ${bubbleX + cornerRadius} ${bubbleY} 
-                L ${bubbleX + bubbleWidth - cornerRadius} ${bubbleY} 
-                Q ${bubbleX + bubbleWidth} ${bubbleY}, ${bubbleX + bubbleWidth} ${bubbleY + cornerRadius}
-                L ${bubbleX + bubbleWidth} ${bubbleY + bubbleHeight - cornerRadius}
-                Q ${bubbleX + bubbleWidth} ${bubbleY + bubbleHeight}, ${bubbleX + bubbleWidth - cornerRadius} ${bubbleY + bubbleHeight}
-                L ${tailX} ${bubbleY + bubbleHeight}
-                L ${tailX + tailSize} ${tailY}
-                L ${tailX} ${tailY - tailSize}
-                L ${bubbleX + cornerRadius} ${tailY - tailSize}
-                Q ${bubbleX} ${tailY - tailSize}, ${bubbleX} ${tailY - tailSize - cornerRadius}
-                L ${bubbleX} ${bubbleY + cornerRadius}
-                Q ${bubbleX} ${bubbleY}, ${bubbleX + cornerRadius} ${bubbleY} Z`}
+          <Circle
+            cx={center}
+            cy={center}
+            r={circleRadius}
             fill="url(#bubbleGradient)"
           />
           
           {/* Highlight overlay */}
-          <Path
-            d={`M ${bubbleX + cornerRadius} ${bubbleY} 
-                L ${bubbleX + bubbleWidth - cornerRadius} ${bubbleY} 
-                Q ${bubbleX + bubbleWidth} ${bubbleY}, ${bubbleX + bubbleWidth} ${bubbleY + cornerRadius}
-                L ${bubbleX + bubbleWidth} ${bubbleY + bubbleHeight - cornerRadius}
-                Q ${bubbleX + bubbleWidth} ${bubbleY + bubbleHeight}, ${bubbleX + bubbleWidth - cornerRadius} ${bubbleY + bubbleHeight}
-                L ${tailX} ${bubbleY + bubbleHeight}
-                L ${tailX + tailSize} ${tailY}
-                L ${tailX} ${tailY - tailSize}
-                L ${bubbleX + cornerRadius} ${tailY - tailSize}
-                Q ${bubbleX} ${tailY - tailSize}, ${bubbleX} ${tailY - tailSize - cornerRadius}
-                L ${bubbleX} ${bubbleY + cornerRadius}
-                Q ${bubbleX} ${bubbleY}, ${bubbleX + cornerRadius} ${bubbleY} Z`}
+          <Circle
+            cx={center - circleRadius * 0.2}
+            cy={center - circleRadius * 0.2}
+            r={circleRadius * 0.7}
             fill="url(#bubbleHighlight)"
           />
         </G>
+
+        {/* Tail (patita) - small triangle */}
+        <Path
+          d={`M ${tailX} ${tailY} L ${tailX + tailSize} ${tailY + tailSize * 1.5} L ${tailX - tailSize} ${tailY + tailSize * 1.5} Z`}
+          fill="url(#bubbleGradient)"
+        />
 
         {/* Eyes (ojitos) - vertical ovals */}
         <G opacity={eyesOpacityValue}>
