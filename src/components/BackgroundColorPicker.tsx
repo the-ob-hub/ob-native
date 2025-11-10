@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     top: SCREEN_HEIGHT / 2 - 60,
     left: SCREEN_WIDTH / 2 - 140,
     width: 280,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 1)',
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.md,
     alignItems: 'center',
