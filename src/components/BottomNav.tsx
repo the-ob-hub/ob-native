@@ -266,7 +266,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
         {(() => {
           // Si es Agent (index 3), usar SiriOrbAgent en lugar del ícono SVG
           if (activeIndex === 3) {
-            return <SiriOrbAgent size={32} isActive={true} />;
+            return <SiriOrbAgent size={36} isActive={true} />;
           }
           const ActiveIconComponent = tabs[activeIndex].component;
           return <ActiveIconComponent isActive={true} />;
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   },
   whiteCurveContainer: {
     position: 'absolute',
-    top: -1,
+    top: 0,
     left: -30.65,
     width: 105.3,
     height: 35.75,
