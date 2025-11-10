@@ -92,9 +92,9 @@ export const BackgroundColorPicker: React.FC = () => {
         onResponderRelease={handlePressOut}
         onResponderTerminate={handlePressOut}
         onResponderTerminationRequest={() => {
-          // Permitir que otros componentes capturen el toque inmediatamente
-          // Esto permite que las pantallas funcionen normalmente
-          return true;
+          // No permitir terminación si estamos esperando el long press
+          // Esto permite que el componente capture el toque durante 3 segundos
+          return false;
         }}
       />
 
