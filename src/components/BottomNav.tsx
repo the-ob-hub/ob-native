@@ -217,7 +217,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
             transform: [
               { translateX: bubblePosition },
               { translateY: backgroundTranslateY },
-              { scale: bubbleScale }
             ],
           },
         ]}
