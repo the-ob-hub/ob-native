@@ -109,6 +109,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
   const textOpacity = useRef(new Animated.Value(1)).current;
   const containerTranslateY = useRef(new Animated.Value(100)).current;
   const iconsOpacity = useRef(new Animated.Value(0)).current;
+  const backgroundTranslateY = useRef(new Animated.Value(0)).current;
   const { addLog } = useLogs();
 
   // Animación de entrada del navbar
@@ -166,6 +167,21 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
           friction: 7,
         }),
       ]),
+      // Animación del background: baja 3px durante la transición
+      Animated.sequence([
+        Animated.spring(backgroundTranslateY, {
+          toValue: 3,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 11,
+        }),
+        Animated.spring(backgroundTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 11,
+        }),
+      ]),
     ]).start();
 
     // Animación de fade para el texto
@@ -200,6 +216,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
           {
             transform: [
               { translateX: bubblePosition },
+              { translateY: backgroundTranslateY },
               { scale: bubbleScale }
             ],
           },
