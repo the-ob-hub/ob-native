@@ -1,11 +1,13 @@
 import React from 'react';
 import { StyleSheet, Dimensions, Image, View } from 'react-native';
-import { useBackgroundColor, BACKGROUND_COLORS } from '../contexts/BackgroundColorContext';
+import { LinearGradient } from 'react-native-linear-gradient';
+import { useBackgroundColor } from '../contexts/BackgroundColorContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const SharedBackground: React.FC = () => {
-  const { backgroundColor } = useBackgroundColor();
+  const { selectedGradient, getGradient } = useBackgroundColor();
+  const gradient = getGradient(selectedGradient);
 
   return (
     <>
@@ -20,14 +22,16 @@ export const SharedBackground: React.FC = () => {
         ]}
         resizeMode="cover"
       />
-      {/* Overlay de color si no es transparente */}
-      {backgroundColor !== BACKGROUND_COLORS.default && (
-        <View
+      {/* Overlay con degradé si no es original */}
+      {gradient && selectedGradient !== 'original' && (
+        <LinearGradient
+          colors={gradient.colors}
+          start={gradient.start || { x: 0, y: 0 }}
+          end={gradient.end || { x: 0, y: 1 }}
           style={[
-            styles.colorOverlay,
+            styles.gradientOverlay,
             {
-              backgroundColor: backgroundColor,
-              opacity: 0.6, // Ajusta la opacidad del overlay
+              opacity: 0.7, // Opacidad del degradé
             },
           ]}
         />
@@ -42,7 +46,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
   },
-  colorOverlay: {
+  gradientOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,

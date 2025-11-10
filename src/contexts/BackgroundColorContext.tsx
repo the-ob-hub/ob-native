@@ -1,18 +1,39 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+export interface GradientColor {
+  colors: string[];
+  start?: { x: number; y: number };
+  end?: { x: number; y: number };
+}
+
 interface BackgroundColorContextType {
-  backgroundColor: string;
-  setBackgroundColor: (color: string) => void;
+  selectedGradient: string;
+  setSelectedGradient: (gradient: string) => void;
+  getGradient: (gradientName: string) => GradientColor | null;
 }
 
 const BackgroundColorContext = createContext<BackgroundColorContextType | undefined>(undefined);
 
-// Colores disponibles para el fondo
-export const BACKGROUND_COLORS = {
-  default: 'transparent', // Sin overlay, muestra la imagen original
-  blue: '#0066FF',
-  purple: '#7B1FA2',
-  orange: '#FF8C00',
+// Degradés disponibles para el fondo
+export const BACKGROUND_GRADIENTS: Record<string, GradientColor> = {
+  original: {
+    colors: ['transparent'], // Sin overlay, muestra la imagen original
+  },
+  blue: {
+    colors: ['#0066FF', '#0040CC', '#001A99'],
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 1 },
+  },
+  purple: {
+    colors: ['#7B1FA2', '#5A0F7A', '#3D0A52'],
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 1 },
+  },
+  orange: {
+    colors: ['#FF8C00', '#CC6F00', '#995200'],
+    start: { x: 0, y: 0 },
+    end: { x: 0, y: 1 },
+  },
 };
 
 interface BackgroundColorProviderProps {
@@ -20,10 +41,14 @@ interface BackgroundColorProviderProps {
 }
 
 export const BackgroundColorProvider: React.FC<BackgroundColorProviderProps> = ({ children }) => {
-  const [backgroundColor, setBackgroundColor] = useState<string>(BACKGROUND_COLORS.default);
+  const [selectedGradient, setSelectedGradient] = useState<string>('original');
+
+  const getGradient = (gradientName: string): GradientColor | null => {
+    return BACKGROUND_GRADIENTS[gradientName] || null;
+  };
 
   return (
-    <BackgroundColorContext.Provider value={{ backgroundColor, setBackgroundColor }}>
+    <BackgroundColorContext.Provider value={{ selectedGradient, setSelectedGradient, getGradient }}>
       {children}
     </BackgroundColorContext.Provider>
   );
@@ -36,4 +61,3 @@ export const useBackgroundColor = () => {
   }
   return context;
 };
-

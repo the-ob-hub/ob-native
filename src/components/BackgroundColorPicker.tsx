@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { StyleSheet, Dimensions, TouchableOpacity, Animated, Text, View } from 'react-native';
-import { useBackgroundColor, BACKGROUND_COLORS } from '../contexts/BackgroundColorContext';
+import { LinearGradient } from 'react-native-linear-gradient';
+import { useBackgroundColor, BACKGROUND_GRADIENTS } from '../contexts/BackgroundColorContext';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const BackgroundColorPicker: React.FC = () => {
-  const { backgroundColor, setBackgroundColor } = useBackgroundColor();
+  const { selectedGradient, setSelectedGradient } = useBackgroundColor();
   const [showColorPicker, setShowColorPicker] = useState(false);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -42,16 +43,16 @@ export const BackgroundColorPicker: React.FC = () => {
 
   const handlePressOut = () => {
     console.log('🔵 BackgroundColorPicker - PressOut, cancelando timer');
-    // Cancelar si se suelta antes de los 3 segundos
+    // Cancelar si se suelta antes de los 1.5 segundos
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
   };
 
-  const handleColorSelect = (color: string) => {
-    // Aplicar el color seleccionado
-    setBackgroundColor(color);
+  const handleGradientSelect = (gradientName: string) => {
+    // Aplicar el degradé seleccionado
+    setSelectedGradient(gradientName);
     
     // Animación de salida
     Animated.parallel([
@@ -71,10 +72,11 @@ export const BackgroundColorPicker: React.FC = () => {
     });
   };
 
-  const colorOptions = [
-    { color: BACKGROUND_COLORS.blue, label: 'Azul' },
-    { color: BACKGROUND_COLORS.purple, label: 'Morado' },
-    { color: BACKGROUND_COLORS.orange, label: 'Naranja' },
+  const gradientOptions = [
+    { name: 'original', label: 'Original', gradient: BACKGROUND_GRADIENTS.original },
+    { name: 'blue', label: 'Azul', gradient: BACKGROUND_GRADIENTS.blue },
+    { name: 'purple', label: 'Morado', gradient: BACKGROUND_GRADIENTS.purple },
+    { name: 'orange', label: 'Naranja', gradient: BACKGROUND_GRADIENTS.orange },
   ];
 
   return (
@@ -93,12 +95,11 @@ export const BackgroundColorPicker: React.FC = () => {
         onResponderTerminate={handlePressOut}
         onResponderTerminationRequest={() => {
           // No permitir terminación si estamos esperando el long press
-          // Esto permite que el componente capture el toque durante 3 segundos
           return false;
         }}
       />
 
-      {/* Selector de colores */}
+      {/* Selector de degradés */}
       {showColorPicker && (
         <Animated.View
           style={[
@@ -110,21 +111,27 @@ export const BackgroundColorPicker: React.FC = () => {
           ]}
           pointerEvents="auto"
         >
-          <Text style={styles.colorPickerTitle}>Selecciona un color</Text>
-          <View style={styles.colorOptionsContainer}>
-            {colorOptions.map((option, index) => (
+          <Text style={styles.colorPickerTitle}>Selecciona un fondo</Text>
+          <View style={styles.gradientOptionsContainer}>
+            {gradientOptions.map((option, index) => (
               <TouchableOpacity
                 key={index}
-                style={styles.colorOption}
-                onPress={() => handleColorSelect(option.color)}
+                style={styles.gradientOption}
+                onPress={() => handleGradientSelect(option.name)}
               >
-                <View
-                  style={[
-                    styles.colorCircle,
-                    { backgroundColor: option.color },
-                  ]}
-                />
-                <Text style={styles.colorLabel}>{option.label}</Text>
+                {option.name === 'original' ? (
+                  <View style={[styles.gradientCircle, styles.originalCircle]}>
+                    <Text style={styles.originalText}>O</Text>
+                  </View>
+                ) : (
+                  <LinearGradient
+                    colors={option.gradient.colors}
+                    start={option.gradient.start || { x: 0, y: 0 }}
+                    end={option.gradient.end || { x: 0, y: 1 }}
+                    style={styles.gradientCircle}
+                  />
+                )}
+                <Text style={styles.gradientLabel}>{option.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -141,14 +148,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 50, // Menor zIndex para que no bloquee las pantallas
+    zIndex: 50,
     backgroundColor: 'transparent',
   },
   colorPickerContainer: {
     position: 'absolute',
-    top: SCREEN_HEIGHT / 2 - 100,
-    left: SCREEN_WIDTH / 2 - 150,
-    width: 300,
+    top: SCREEN_HEIGHT / 2 - 120,
+    left: SCREEN_WIDTH / 2 - 180,
+    width: 360,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     borderRadius: BORDER_RADIUS.xl,
     padding: SPACING.lg,
@@ -166,14 +173,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: SPACING.md,
   },
-  colorOptionsContainer: {
+  gradientOptionsContainer: {
     flexDirection: 'row',
-    gap: SPACING.lg,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: SPACING.md,
   },
-  colorOption: {
+  gradientOption: {
     alignItems: 'center',
+    width: 70,
   },
-  colorCircle: {
+  gradientCircle: {
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -181,10 +191,20 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: COLORS.white,
   },
-  colorLabel: {
+  originalCircle: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  originalText: {
     color: COLORS.white,
-    fontSize: 14,
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  gradientLabel: {
+    color: COLORS.white,
+    fontSize: 12,
     fontWeight: '500',
+    textAlign: 'center',
   },
 });
-
