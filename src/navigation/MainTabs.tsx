@@ -104,7 +104,7 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-        <Text style={styles.versionBadgeText}>v1.44</Text>
+        <Text style={styles.versionBadgeText}>v1.45</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}

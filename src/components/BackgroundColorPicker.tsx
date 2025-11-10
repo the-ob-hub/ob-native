@@ -19,7 +19,7 @@ export const BackgroundColorPicker: React.FC = () => {
       clearTimeout(longPressTimerRef.current);
     }
 
-    // Iniciar timer de 3 segundos
+    // Iniciar timer de 1.5 segundos
     longPressTimerRef.current = setTimeout(() => {
       console.log('🔵 BackgroundColorPicker - LongPress completado, mostrando selector');
       setShowColorPicker(true);
@@ -37,7 +37,7 @@ export const BackgroundColorPicker: React.FC = () => {
           useNativeDriver: true,
         }),
       ]).start();
-    }, 3000);
+    }, 1500);
   };
 
   const handlePressOut = () => {
