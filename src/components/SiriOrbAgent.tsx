@@ -12,9 +12,9 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
   isActive = false 
 }) => {
   const center = size / 2;
-  const bubbleWidth = size * 0.7;
-  const bubbleHeight = size * 0.6;
-  const cornerRadius = size * 0.12;
+  const bubbleWidth = size * 0.65;
+  const bubbleHeight = size * 0.65;
+  const cornerRadius = size * 0.25;
 
   // Eyes blink animation - random timing
   const eyesOpacity = useRef(new Animated.Value(1)).current;
