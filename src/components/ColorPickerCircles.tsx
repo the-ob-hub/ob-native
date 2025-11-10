@@ -139,7 +139,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: SPACING.sm, // Espacio desde el avatar
-    marginTop: avatarSize * 0.2, // 20% más abajo
+    alignSelf: 'flex-start', // Evitar que afecte al avatar
+    marginTop: avatarSize * 0.2, // 20% más abajo (solo los círculos)
   },
   gradientOptionContainer: {
     alignItems: 'center',

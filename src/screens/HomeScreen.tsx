@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   avatarRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start', // Alinear al inicio para que el marginTop de los círculos no afecte al avatar
   },
   versionBadge: {
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
