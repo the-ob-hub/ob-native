@@ -91,7 +91,7 @@ export const AgentScreen: React.FC = () => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={80} // Ajuste para el bottom nav
+      keyboardVerticalOffset={0}
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>OndaBank</Text>
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     paddingVertical: SPACING.md,
-    paddingBottom: 100, // Espacio para el navbar
+    paddingBottom: SPACING.md,
   },
   messageContainer: {
     flexDirection: 'row',
@@ -236,8 +236,8 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
-    paddingBottom: 100, // Espacio para el navbar
+    paddingTop: SPACING.md,
+    paddingBottom: 0,
     backgroundColor: 'transparent',
     borderTopWidth: 0,
   },
