@@ -208,7 +208,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
       >
         <WhiteCurveShape />
       </Animated.View>
-      {/* Círculo oscuro */}
+      {/* Círculo oscuro - transparente cuando Agent está activo */}
       <Animated.View
         style={[
           styles.bubble,
@@ -217,6 +217,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
               { translateX: bubblePosition },
               { scale: bubbleScale }
             ],
+            opacity: activeIndex === 3 ? 0 : 1, // Transparente para Agent
           },
         ]}
         pointerEvents="none"
@@ -265,7 +266,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
         {(() => {
           // Si es Agent (index 3), usar SiriOrbAgent en lugar del ícono SVG
           if (activeIndex === 3) {
-            return <SiriOrbAgent size={24} isActive={true} />;
+            return <SiriOrbAgent size={32} isActive={true} />;
           }
           const ActiveIconComponent = tabs[activeIndex].component;
           return <ActiveIconComponent isActive={true} />;
