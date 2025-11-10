@@ -275,7 +275,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
       <Animated.View
         style={[
           styles.activeIconContainer,
-          activeIndex === 3 && styles.agentIconOffset,
           {
             transform: [{ translateX: bubblePosition }],
           },
@@ -284,7 +283,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
         {(() => {
           // Si es Agent (index 3), usar SiriOrbAgent en lugar del ícono SVG
           if (activeIndex === 3) {
-            return <SiriOrbAgent size={47} isActive={true} />;
+            return (
+              <View style={styles.agentIconOffset}>
+                <SiriOrbAgent size={47} isActive={true} />
+              </View>
+            );
           }
           const ActiveIconComponent = tabs[activeIndex].component;
           return <ActiveIconComponent isActive={true} />;
