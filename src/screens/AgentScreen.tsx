@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants';
+import { SiriOrbAgent } from '../components/SiriOrbAgent';
 
 interface Message {
   id: string;
@@ -75,7 +76,7 @@ export const AgentScreen: React.FC = () => {
       <View style={[styles.messageContainer, isUser ? styles.userContainer : styles.assistantContainer]}>
         {!isUser && (
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>O</Text>
+            <SiriOrbAgent size={40} isActive={false} />
           </View>
         )}
         <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}>
@@ -179,20 +180,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: BORDER_RADIUS.round,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: '#0066FF', // Azul igual al bubble del toolbar
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.sm,
-    shadowColor: COLORS.secondary,
+    shadowColor: '#0066FF',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
-  },
-  avatarText: {
-    color: COLORS.white,
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   messageBubble: {
     maxWidth: '75%',
