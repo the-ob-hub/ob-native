@@ -225,7 +225,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
       >
         <WhiteCurveShape />
       </Animated.View>
-      {/* Círculo oscuro - transparente cuando Agent está activo */}
+      {/* Círculo azul - fondo para todos los items */}
       <Animated.View
         style={[
           styles.bubble,
@@ -234,7 +234,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
               { translateX: bubblePosition },
               { scale: bubbleScale }
             ],
-            opacity: activeIndex === 3 ? 0 : 1, // Transparente para Agent
+            opacity: 1,
           },
         ]}
         pointerEvents="none"
