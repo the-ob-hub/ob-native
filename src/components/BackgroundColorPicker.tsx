@@ -82,11 +82,15 @@ export const BackgroundColorPicker: React.FC = () => {
       {/* Área táctil invisible que captura el LongPress */}
       <View
         style={styles.touchableArea}
-        onStartShouldSetResponder={() => !showColorPicker}
-        onMoveShouldSetResponder={() => !showColorPicker}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => false}
         onResponderGrant={handlePressIn}
         onResponderRelease={handlePressOut}
         onResponderTerminate={handlePressOut}
+        onResponderTerminationRequest={() => {
+          // Permitir que otros componentes capturen el toque si no hay selector visible
+          return !showColorPicker;
+        }}
       />
 
       {/* Selector de colores */}
