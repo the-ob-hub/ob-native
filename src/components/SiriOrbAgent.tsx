@@ -8,7 +8,7 @@ interface SiriOrbAgentProps {
 }
 
 export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({ 
-  size = 47, 
+  size = 52, 
   isActive = false 
 }) => {
   const center = size / 2;

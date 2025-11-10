@@ -366,8 +366,8 @@ const styles = StyleSheet.create({
   activeIconContainer: {
     position: 'absolute',
     top: -22,
-    width: 44,
-    height: 44,
+    width: 52,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 4,
