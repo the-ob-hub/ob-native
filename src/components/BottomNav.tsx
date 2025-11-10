@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated, Dimensions, Text } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useLogs } from '../contexts/LogContext';
+import { SiriOrbAgent } from './SiriOrbAgent';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ITEM_WIDTH = SCREEN_WIDTH / 4;
@@ -262,6 +263,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
         ]}
       >
         {(() => {
+          // Si es Agent (index 3), usar SiriOrbAgent en lugar del ícono SVG
+          if (activeIndex === 3) {
+            return <SiriOrbAgent size={24} isActive={true} />;
+          }
           const ActiveIconComponent = tabs[activeIndex].component;
           return <ActiveIconComponent isActive={true} />;
         })()}
