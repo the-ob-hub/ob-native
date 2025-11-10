@@ -125,7 +125,7 @@ export const BackgroundColorPicker: React.FC = () => {
               {
                 position: 'absolute',
                 left: startX,
-                top: startY - itemSize / 2,
+                top: startY - itemSize / 2, // Centrado verticalmente con el avatar
                 opacity: anim.opacity,
                 transform: [
                   { scale: anim.scale },
