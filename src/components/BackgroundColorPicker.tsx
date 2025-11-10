@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Dimensions, TouchableOpacity, Animated, Text, View, Pressable } from 'react-native';
-import { LinearGradient } from 'react-native-linear-gradient';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Circle } from 'react-native-svg';
 import { useBackgroundColor, BACKGROUND_GRADIENTS } from '../contexts/BackgroundColorContext';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants';
 
@@ -96,12 +96,28 @@ export const BackgroundColorPicker: React.FC = () => {
                     <Text style={styles.originalText}>O</Text>
                   </View>
                 ) : (
-                  <LinearGradient
-                    colors={option.gradient.colors}
-                    start={option.gradient.start || { x: 0, y: 0 }}
-                    end={option.gradient.end || { x: 0, y: 1 }}
-                    style={styles.gradientCircle}
-                  />
+                  <Svg width={60} height={60} style={styles.gradientCircle}>
+                    <Defs>
+                      <SvgLinearGradient id={`gradient-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                        {option.gradient.colors.map((color, colorIndex) => (
+                          <Stop
+                            key={colorIndex}
+                            offset={`${(colorIndex / (option.gradient.colors.length - 1)) * 100}%`}
+                            stopColor={color}
+                            stopOpacity="1"
+                          />
+                        ))}
+                      </SvgLinearGradient>
+                    </Defs>
+                    <Circle
+                      cx="30"
+                      cy="30"
+                      r="27"
+                      fill={`url(#gradient-${index})`}
+                      stroke={COLORS.white}
+                      strokeWidth="3"
+                    />
+                  </Svg>
                 )}
                 <Text style={styles.gradientLabel}>{option.label}</Text>
               </TouchableOpacity>
@@ -160,13 +176,17 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     marginBottom: SPACING.sm,
-    borderWidth: 3,
-    borderColor: COLORS.white,
   },
   originalCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: SPACING.sm,
+    borderWidth: 3,
+    borderColor: COLORS.white,
   },
   originalText: {
     color: COLORS.white,
