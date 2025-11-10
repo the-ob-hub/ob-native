@@ -14,7 +14,7 @@ const gradientOptions = [
 const avatarSize = 40;
 const itemSize = avatarSize;
 const distanceFromAvatar = SPACING.sm;
-const itemSpacing = avatarSize + distanceFromAvatar;
+const itemSpacing = (avatarSize + distanceFromAvatar) * 0.1; // 10% de la distancia original
 
 export const ColorPickerCircles: React.FC = () => {
   const { selectedGradient, setSelectedGradient, showColorPicker, setShowColorPicker } =
@@ -139,10 +139,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: SPACING.sm, // Espacio desde el avatar
+    marginTop: avatarSize * 0.2, // 20% más abajo
   },
   gradientOptionContainer: {
     alignItems: 'center',
-    marginRight: SPACING.sm, // Espacio entre círculos
+    marginRight: itemSpacing, // Espacio entre círculos (10% del original)
   },
   gradientCircle: {
     width: 40,
