@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, Dimensions, TouchableOpacity, Animated, Text, View } from 'react-native';
+import { StyleSheet, Dimensions, TouchableOpacity, Animated, Text, View, Pressable } from 'react-native';
 import { useBackgroundColor, BACKGROUND_COLORS } from '../contexts/BackgroundColorContext';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants';
 
@@ -80,16 +80,12 @@ export const BackgroundColorPicker: React.FC = () => {
   return (
     <>
       {/* Área táctil invisible que captura el LongPress */}
-      {!showColorPicker && (
-        <TouchableOpacity
-          activeOpacity={1}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          delayLongPress={3000}
-          style={styles.touchableArea}
-          pointerEvents="box-none"
-        />
-      )}
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={styles.touchableArea}
+        hitSlop={{ top: 0, bottom: 0, left: 0, right: 0 }}
+      />
 
       {/* Selector de colores */}
       {showColorPicker && (
