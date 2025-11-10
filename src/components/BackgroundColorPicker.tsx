@@ -82,22 +82,16 @@ export const BackgroundColorPicker: React.FC = () => {
   return (
     <>
       {/* Área táctil invisible que captura el LongPress */}
-      <View
-        style={styles.touchableArea}
-        onStartShouldSetResponder={() => {
-          // Solo capturar si no hay selector visible
-          if (showColorPicker) return false;
-          return true;
-        }}
-        onMoveShouldSetResponder={() => false}
-        onResponderGrant={handlePressIn}
-        onResponderRelease={handlePressOut}
-        onResponderTerminate={handlePressOut}
-        onResponderTerminationRequest={() => {
-          // No permitir terminación si estamos esperando el long press
-          return false;
-        }}
-      />
+      {!showColorPicker && (
+        <View
+          style={styles.touchableArea}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => false}
+          onResponderGrant={handlePressIn}
+          onResponderRelease={handlePressOut}
+          onResponderTerminate={handlePressOut}
+        />
+      )}
 
       {/* Selector de degradés */}
       {showColorPicker && (
