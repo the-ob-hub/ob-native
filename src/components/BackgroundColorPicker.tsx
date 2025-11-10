@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, Dimensions, TouchableOpacity, Animated, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Dimensions, TouchableOpacity, Animated, Text, View, Pressable } from 'react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { useBackgroundColor, BACKGROUND_GRADIENTS } from '../contexts/BackgroundColorContext';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants';
@@ -9,45 +9,26 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 export const BackgroundColorPicker: React.FC = () => {
   const { selectedGradient, setSelectedGradient } = useBackgroundColor();
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0)).current;
+  const opacityAnim = React.useRef(new Animated.Value(0)).current;
 
-  const handlePressIn = () => {
-    console.log('🔵 BackgroundColorPicker - PressIn iniciado');
-    // Limpiar timer si existe
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-    }
-
-    // Iniciar timer de 1.5 segundos
-    longPressTimerRef.current = setTimeout(() => {
-      console.log('🔵 BackgroundColorPicker - LongPress completado, mostrando selector');
-      setShowColorPicker(true);
-      // Animación de entrada
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          useNativeDriver: true,
-          tension: 50,
-          friction: 7,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }, 1500);
-  };
-
-  const handlePressOut = () => {
-    console.log('🔵 BackgroundColorPicker - PressOut, cancelando timer');
-    // Cancelar si se suelta antes de los 1.5 segundos
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
+  const handleLongPress = () => {
+    console.log('🔵 BackgroundColorPicker - LongPress detectado');
+    setShowColorPicker(true);
+    // Animación de entrada
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const handleGradientSelect = (gradientName: string) => {
@@ -83,13 +64,10 @@ export const BackgroundColorPicker: React.FC = () => {
     <>
       {/* Área táctil invisible que captura el LongPress */}
       {!showColorPicker && (
-        <View
+        <Pressable
           style={styles.touchableArea}
-          onStartShouldSetResponder={() => true}
-          onMoveShouldSetResponder={() => false}
-          onResponderGrant={handlePressIn}
-          onResponderRelease={handlePressOut}
-          onResponderTerminate={handlePressOut}
+          onLongPress={handleLongPress}
+          delayLongPress={1500}
         />
       )}
 
