@@ -1,13 +1,14 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Pressable } from 'react-native';
 
 interface UserAvatarProps {
   imageUrl?: string;
   fullName?: string;
   onPress: () => void;
+  onLongPress?: () => void;
 }
 
-export const UserAvatar: React.FC<UserAvatarProps> = ({ imageUrl, fullName, onPress }) => {
+export const UserAvatar: React.FC<UserAvatarProps> = ({ imageUrl, fullName, onPress, onLongPress }) => {
   // Obtener iniciales del nombre
   const getInitials = () => {
     if (!fullName) return 'U';
@@ -19,7 +20,12 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ imageUrl, fullName, onPr
   };
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={1500}
+      activeOpacity={0.7}
+    >
       <View style={styles.avatarContainer}>
         {imageUrl ? (
           <View style={styles.avatar}>
@@ -32,7 +38,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ imageUrl, fullName, onPr
           </View>
         )}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -56,4 +62,3 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
-

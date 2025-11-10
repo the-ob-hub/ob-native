@@ -1,175 +1,189 @@
-import React, { useState } from 'react';
-import { StyleSheet, Dimensions, TouchableOpacity, Animated, Text, View, Pressable } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, Dimensions, TouchableOpacity, Animated, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Circle } from 'react-native-svg';
 import { useBackgroundColor, BACKGROUND_GRADIENTS } from '../contexts/BackgroundColorContext';
-import { COLORS, SPACING, BORDER_RADIUS } from '../constants';
+import { COLORS, SPACING } from '../constants';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const gradientOptions = [
+  { name: 'original', label: 'Original', gradient: BACKGROUND_GRADIENTS.original },
+  { name: 'blue', label: 'Azul', gradient: BACKGROUND_GRADIENTS.blue },
+  { name: 'purple', label: 'Morado', gradient: BACKGROUND_GRADIENTS.purple },
+  { name: 'orange', label: 'Naranja', gradient: BACKGROUND_GRADIENTS.orange },
+];
 
 export const BackgroundColorPicker: React.FC = () => {
-  const { selectedGradient, setSelectedGradient } = useBackgroundColor();
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const scaleAnim = React.useRef(new Animated.Value(0)).current;
-  const opacityAnim = React.useRef(new Animated.Value(0)).current;
+  const { selectedGradient, setSelectedGradient, showColorPicker, setShowColorPicker, avatarPosition } =
+    useBackgroundColor();
 
-  const handleLongPress = () => {
-    console.log('🔵 BackgroundColorPicker - LongPress detectado');
-    setShowColorPicker(true);
-    // Animación de entrada
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 7,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
+  // Animaciones individuales para cada selector
+  const animations = gradientOptions.map(() => ({
+    scale: React.useRef(new Animated.Value(0)).current,
+    opacity: React.useRef(new Animated.Value(0)).current,
+    translateX: React.useRef(new Animated.Value(0)).current,
+  }));
+
+  // Posición inicial (avatar) y final (a la derecha)
+  const avatarX = avatarPosition?.x || SPACING.lg + 20; // Posición del avatar (padding + mitad del avatar)
+  const avatarY = avatarPosition?.y || 60 + 20; // paddingTop + mitad del avatar
+  const startX = avatarX;
+  const startY = avatarY;
+  const itemSpacing = 60; // Espacio entre items
+  const itemSize = 50;
+
+  useEffect(() => {
+    if (showColorPicker && avatarPosition) {
+      // Animar cada selector con delay escalonado
+      animations.forEach((anim, index) => {
+        const delay = index * 100; // 100ms entre cada animación
+        const finalX = startX + 60 + index * itemSpacing; // Empezar 60px a la derecha del avatar
+
+        Animated.parallel([
+          Animated.spring(anim.scale, {
+            toValue: 1,
+            delay,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 7,
+          }),
+          Animated.timing(anim.opacity, {
+            toValue: 1,
+            delay,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.spring(anim.translateX, {
+            toValue: finalX - startX,
+            delay,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 7,
+          }),
+        ]).start();
+      });
+    } else {
+      // Reset animaciones
+      animations.forEach((anim) => {
+        anim.scale.setValue(0);
+        anim.opacity.setValue(0);
+        anim.translateX.setValue(0);
+      });
+    }
+  }, [showColorPicker, avatarPosition]);
 
   const handleGradientSelect = (gradientName: string) => {
     // Aplicar el degradé seleccionado
     setSelectedGradient(gradientName);
-    
-    // Animación de salida
-    Animated.parallel([
-      Animated.spring(scaleAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 7,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setShowColorPicker(false);
+
+    // Animación de salida (inversa)
+    animations.forEach((anim, index) => {
+      const delay = index * 50; // Más rápido al salir
+      Animated.parallel([
+        Animated.spring(anim.scale, {
+          toValue: 0,
+          delay,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(anim.opacity, {
+          toValue: 0,
+          delay,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(anim.translateX, {
+          toValue: 0,
+          delay,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+      ]).start(() => {
+        if (index === animations.length - 1) {
+          setShowColorPicker(false);
+        }
+      });
     });
   };
 
-  const gradientOptions = [
-    { name: 'original', label: 'Original', gradient: BACKGROUND_GRADIENTS.original },
-    { name: 'blue', label: 'Azul', gradient: BACKGROUND_GRADIENTS.blue },
-    { name: 'purple', label: 'Morado', gradient: BACKGROUND_GRADIENTS.purple },
-    { name: 'orange', label: 'Naranja', gradient: BACKGROUND_GRADIENTS.orange },
-  ];
+  if (!showColorPicker || !avatarPosition) return null;
 
   return (
-    <>
-      {/* Área táctil invisible que captura el LongPress - solo cuando no hay selector visible */}
-      {!showColorPicker && (
-        <Pressable
-          style={styles.touchableArea}
-          onLongPress={handleLongPress}
-          delayLongPress={1500}
-        />
-      )}
-
-      {/* Selector de degradés */}
-      {showColorPicker && (
-        <Animated.View
-          style={[
-            styles.colorPickerContainer,
-            {
-              opacity: opacityAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-          pointerEvents="auto"
-        >
-          <Text style={styles.colorPickerTitle}>Selecciona un fondo</Text>
-          <View style={styles.gradientOptionsContainer}>
-            {gradientOptions.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.gradientOption}
-                onPress={() => handleGradientSelect(option.name)}
-              >
-                {option.name === 'original' ? (
-                  <View style={[styles.gradientCircle, styles.originalCircle]}>
-                    <Text style={styles.originalText}>O</Text>
-                  </View>
-                ) : (
-                  <Svg width={50} height={50} style={styles.gradientCircle}>
-                    <Defs>
-                      <SvgLinearGradient id={`gradient-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                        {option.gradient.colors.map((color, colorIndex) => (
-                          <Stop
-                            key={colorIndex}
-                            offset={`${(colorIndex / (option.gradient.colors.length - 1)) * 100}%`}
-                            stopColor={color}
-                            stopOpacity="1"
-                          />
-                        ))}
-                      </SvgLinearGradient>
-                    </Defs>
-                    <Circle
-                      cx="25"
-                      cy="25"
-                      r="23"
-                      fill={`url(#gradient-${index})`}
-                      stroke={COLORS.white}
-                      strokeWidth="2"
-                    />
-                  </Svg>
-                )}
-                <Text style={styles.gradientLabel}>{option.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Animated.View>
-      )}
-    </>
+    <View style={styles.container} pointerEvents="box-none">
+      {gradientOptions.map((option, index) => {
+        const anim = animations[index];
+        return (
+          <Animated.View
+            key={index}
+            style={[
+              styles.gradientOptionContainer,
+              {
+                position: 'absolute',
+                left: startX,
+                top: startY - itemSize / 2,
+                opacity: anim.opacity,
+                transform: [
+                  { scale: anim.scale },
+                  { translateX: anim.translateX },
+                ],
+              },
+            ]}
+            pointerEvents="auto"
+          >
+            <TouchableOpacity
+              onPress={() => handleGradientSelect(option.name)}
+              activeOpacity={0.8}
+            >
+              {option.name === 'original' ? (
+                <View style={[styles.gradientCircle, styles.originalCircle]}>
+                  <Text style={styles.originalText}>O</Text>
+                </View>
+              ) : (
+                <Svg width={itemSize} height={itemSize} style={styles.gradientCircle}>
+                  <Defs>
+                    <SvgLinearGradient id={`gradient-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                      {option.gradient.colors.map((color, colorIndex) => (
+                        <Stop
+                          key={colorIndex}
+                          offset={`${(colorIndex / (option.gradient.colors.length - 1)) * 100}%`}
+                          stopColor={color}
+                          stopOpacity="1"
+                        />
+                      ))}
+                    </SvgLinearGradient>
+                  </Defs>
+                  <Circle
+                    cx={itemSize / 2}
+                    cy={itemSize / 2}
+                    r={itemSize / 2 - 2}
+                    fill={`url(#gradient-${index})`}
+                    stroke={COLORS.white}
+                    strokeWidth="2"
+                  />
+                </Svg>
+              )}
+              <Text style={styles.gradientLabel}>{option.label}</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        );
+      })}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  touchableArea: {
+  container: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 0, // Mismo nivel que el fondo, pero las pantallas (zIndex 1) están por encima
-    backgroundColor: 'transparent',
-  },
-  colorPickerContainer: {
-    position: 'absolute',
-    top: SCREEN_HEIGHT / 2 - 60,
-    left: SCREEN_WIDTH / 2 - 140,
-    width: 280,
-    backgroundColor: 'rgba(0, 0, 0, 1)',
-    borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.md,
-    alignItems: 'center',
     zIndex: 10000,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
-  colorPickerTitle: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: SPACING.sm,
-  },
-  gradientOptionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  gradientOptionContainer: {
     alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  gradientOption: {
-    alignItems: 'center',
-    width: 55,
   },
   gradientCircle: {
     width: 50,
@@ -198,5 +212,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

@@ -7,6 +7,7 @@ import { UserAvatar } from '../components/UserAvatar';
 import { ProfileSheet } from '../components/ProfileSheet';
 import { User } from '../models';
 import { db } from '../data/database';
+import { useBackgroundColor } from '../contexts/BackgroundColorContext';
 
 interface HomeScreenProps {
   onLogout?: () => void;
@@ -18,6 +19,31 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const avatarRef = useRef<View | null>(null);
+  const { setShowColorPicker, setAvatarPosition } = useBackgroundColor();
+
+  const handleAvatarLongPress = () => {
+    if (avatarRef.current) {
+      avatarRef.current.measure((x, y, width, height, pageX, pageY) => {
+        // Calcular posición del centro del avatar
+        const avatarCenterX = pageX + width / 2;
+        const avatarCenterY = pageY + height / 2;
+        setAvatarPosition({ x: avatarCenterX, y: avatarCenterY });
+        setShowColorPicker(true);
+      });
+    }
+  };
+
+  const handleAvatarLayout = () => {
+    if (avatarRef.current) {
+      avatarRef.current.measure((x, y, width, height, pageX, pageY) => {
+        // Calcular posición del centro del avatar
+        const avatarCenterX = pageX + width / 2;
+        const avatarCenterY = pageY + height / 2;
+        setAvatarPosition({ x: avatarCenterX, y: avatarCenterY });
+      });
+    }
+  };
 
   useEffect(() => {
     loadUserData();
@@ -107,10 +133,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
               },
             ]}
           >
-            <View style={styles.header}>
+            <View style={styles.header} ref={avatarRef} onLayout={handleAvatarLayout}>
               <UserAvatar
                 fullName={currentUser?.fullName}
                 onPress={() => setIsProfileVisible(true)}
+                onLongPress={handleAvatarLongPress}
               />
             </View>
             <View style={styles.welcomeContainer}>

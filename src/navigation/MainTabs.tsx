@@ -93,7 +93,7 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
         ))}
       </Animated.View>
 
-      {/* Selector de color de fondo - LongPress de 1.5 segundos (después de las pantallas) */}
+      {/* Selector de color de fondo - activado desde el avatar */}
       <BackgroundColorPicker />
 
       <BottomNav activeIndex={activeIndex} onItemPress={handleItemPress} />
@@ -104,7 +104,7 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-        <Text style={styles.versionBadgeText}>v1.49</Text>
+        <Text style={styles.versionBadgeText}>v1.50</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}

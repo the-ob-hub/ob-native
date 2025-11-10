@@ -10,6 +10,10 @@ interface BackgroundColorContextType {
   selectedGradient: string;
   setSelectedGradient: (gradient: string) => void;
   getGradient: (gradientName: string) => GradientColor | null;
+  showColorPicker: boolean;
+  setShowColorPicker: (show: boolean) => void;
+  avatarPosition: { x: number; y: number } | null;
+  setAvatarPosition: (position: { x: number; y: number } | null) => void;
 }
 
 const BackgroundColorContext = createContext<BackgroundColorContextType | undefined>(undefined);
@@ -42,13 +46,25 @@ interface BackgroundColorProviderProps {
 
 export const BackgroundColorProvider: React.FC<BackgroundColorProviderProps> = ({ children }) => {
   const [selectedGradient, setSelectedGradient] = useState<string>('original');
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [avatarPosition, setAvatarPosition] = useState<{ x: number; y: number } | null>(null);
 
   const getGradient = (gradientName: string): GradientColor | null => {
     return BACKGROUND_GRADIENTS[gradientName] || null;
   };
 
   return (
-    <BackgroundColorContext.Provider value={{ selectedGradient, setSelectedGradient, getGradient }}>
+    <BackgroundColorContext.Provider
+      value={{
+        selectedGradient,
+        setSelectedGradient,
+        getGradient,
+        showColorPicker,
+        setShowColorPicker,
+        avatarPosition,
+        setAvatarPosition,
+      }}
+    >
       {children}
     </BackgroundColorContext.Provider>
   );
