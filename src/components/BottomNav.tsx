@@ -167,10 +167,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
           friction: 7,
         }),
       ]),
-      // Animación del background: baja 3px durante la transición
+      // Animación del background: baja 1px durante la transición
       Animated.sequence([
         Animated.spring(backgroundTranslateY, {
-          toValue: 3,
+          toValue: 1,
           useNativeDriver: true,
           tension: 65,
           friction: 11,
