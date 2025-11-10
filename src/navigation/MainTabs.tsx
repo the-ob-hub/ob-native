@@ -83,7 +83,7 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
         pointerEvents="box-none"
       >
         {screens.map((ScreenComponent, index) => (
-          <View key={index} style={[styles.screenWrapper, { width: SCREEN_WIDTH }]}>
+          <View key={index} style={[styles.screenWrapper, { width: SCREEN_WIDTH }]} pointerEvents="auto">
             {index === 0 ? (
               <ScreenComponent onLogout={onLogout} />
             ) : (
