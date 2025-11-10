@@ -26,13 +26,17 @@ export const BackgroundColorPicker: React.FC = () => {
 
   // Posición inicial (avatar) y final (a la derecha)
   const avatarSize = 40; // Mismo tamaño que el avatar
-  const avatarX = avatarPosition?.x || SPACING.lg + avatarSize / 2; // Posición del centro del avatar
-  const avatarY = avatarPosition?.y || 60 + avatarSize / 2; // paddingTop + mitad del avatar
-  const startX = avatarX; // Centro del avatar (punto de origen)
-  const startY = avatarY;
-  const distanceFromAvatar = SPACING.sm; // Distancia entre avatar y primer círculo
+  const avatarX = avatarPosition?.x || SPACING.lg + avatarSize / 2; // Posición del centro del avatar (X)
+  const avatarY = avatarPosition?.y || 60 + avatarSize / 2; // Posición del centro del avatar (Y)
+  const startX = avatarX; // Centro del avatar (punto de origen X)
+  const startY = avatarY; // Centro del avatar (mismo Y que el avatar)
+  const distanceFromAvatar = SPACING.sm; // Distancia horizontal entre avatar y primer círculo
   const itemSpacing = avatarSize + distanceFromAvatar; // Distancia entre centros de círculos (misma que avatar-primer círculo)
   const itemSize = avatarSize; // Mismo tamaño que el avatar
+  
+  // Calcular top del círculo para que esté en la misma fila que el avatar
+  // El centro del círculo debe estar en startY, entonces top = startY - itemSize/2
+  const circleTop = startY - itemSize / 2;
 
   useEffect(() => {
     if (showColorPicker && avatarPosition) {
@@ -125,7 +129,7 @@ export const BackgroundColorPicker: React.FC = () => {
               {
                 position: 'absolute',
                 left: startX,
-                top: startY - itemSize / 2, // Centrado verticalmente con el avatar
+                top: circleTop, // Misma fila que el avatar: centro del avatar menos la mitad del tamaño del círculo
                 opacity: anim.opacity,
                 transform: [
                   { scale: anim.scale },
