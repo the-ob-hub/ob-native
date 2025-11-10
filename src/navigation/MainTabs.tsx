@@ -6,6 +6,7 @@ import { InversionesScreen } from '../screens/InversionesScreen';
 import { AgentScreen } from '../screens/AgentScreen';
 import { BottomNav } from '../components/BottomNav';
 import { SharedBackground } from '../components/SharedBackground';
+import { BackgroundColorPicker } from '../components/BackgroundColorPicker';
 import { LogViewer } from '../components/LogViewer';
 import { useLogs } from '../contexts/LogContext';
 import { COLORS } from '../constants';
@@ -94,13 +95,16 @@ export const MainTabs: React.FC<MainTabsProps> = ({ onLogout }) => {
 
       <BottomNav activeIndex={activeIndex} onItemPress={handleItemPress} />
 
+      {/* Selector de color de fondo - LongPress de 3 segundos */}
+      <BackgroundColorPicker />
+
       {/* Badge de versión flotante - visible en todas las pantallas */}
       <TouchableOpacity
         style={styles.versionBadge}
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-        <Text style={styles.versionBadgeText}>v1.43</Text>
+        <Text style={styles.versionBadgeText}>v1.44</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}
