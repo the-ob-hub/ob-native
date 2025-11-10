@@ -84,7 +84,13 @@ export const BackgroundColorPicker: React.FC = () => {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         style={styles.touchableArea}
-        hitSlop={{ top: 0, bottom: 0, left: 0, right: 0 }}
+        onStartShouldSetResponder={() => {
+          // Solo capturar si no hay selector visible
+          return !showColorPicker;
+        }}
+        onMoveShouldSetResponder={() => {
+          return !showColorPicker;
+        }}
       />
 
       {/* Selector de colores */}
