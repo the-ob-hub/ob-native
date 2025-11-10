@@ -13,7 +13,7 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
 }) => {
   const center = size / 2;
   const radius = size * 0.35;
-  const strokeWidth = size * 0.08;
+  const strokeWidth = size * 0.12; // Anillo más grueso
 
   // Rotation animation
   const rotation = useRef(new Animated.Value(0)).current;
@@ -91,7 +91,7 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
   // Calculate arc paths for each color segment
   const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
   
-  // Create arc path function
+  // Create arc path function - smoother segments
   const createArc = (startAngle: number, endAngle: number, innerRadius: number, outerRadius: number) => {
     const startRad = toRadians(startAngle);
     const endRad = toRadians(endAngle);
@@ -110,17 +110,17 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
     return `M ${x2} ${y2} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x3} ${y3} L ${x4} ${y4} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x1} ${y1} Z`;
   };
 
-  // Star path at the end
+  // Star path at the end - more prominent
   const starAngle = toRadians(45); // End of purple segment
   const starX = center + radius * Math.cos(starAngle);
   const starY = center + radius * Math.sin(starAngle);
-  const starSize = size * 0.06;
+  const starSize = size * 0.08;
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Defs>
-          {/* Pink to Orange gradient */}
+          {/* Pink to Orange gradient - more vibrant */}
           <LinearGradient id="pinkOrange" x1="0%" y1="0%" x2="100%" y2="0%">
             <Stop offset="0%" stopColor="#FF6B9D" stopOpacity="1" />
             <Stop offset="100%" stopColor="#FF8C42" stopOpacity="1" />
@@ -150,24 +150,25 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
             <Stop offset="100%" stopColor="#9B59B6" stopOpacity="1" />
           </LinearGradient>
 
-          {/* Glow gradient */}
+          {/* Enhanced glow gradient */}
           <RadialGradient id="glow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor="#FF6B9D" stopOpacity="0.3" />
-            <Stop offset="50%" stopColor="#4D96FF" stopOpacity="0.2" />
+            <Stop offset="0%" stopColor="#FF6B9D" stopOpacity="0.4" />
+            <Stop offset="30%" stopColor="#FFD93D" stopOpacity="0.3" />
+            <Stop offset="60%" stopColor="#4D96FF" stopOpacity="0.2" />
             <Stop offset="100%" stopColor="#9B59B6" stopOpacity="0" />
           </RadialGradient>
         </Defs>
 
-        {/* Outer glow */}
+        {/* Enhanced outer glow */}
         <Circle
           cx={center}
           cy={center}
-          r={radius * 1.3 * scaleValue}
+          r={radius * 1.4 * scaleValue}
           fill="url(#glow)"
-          opacity={opacityValue * 0.5}
+          opacity={opacityValue * 0.6}
         />
 
-        {/* Ring segments */}
+        {/* Ring segments - smoother and more vibrant */}
         <G
           transform={`rotate(${rotationValue} ${center} ${center}) scale(${scaleValue})`}
           opacity={opacityValue}
@@ -202,12 +203,20 @@ export const SiriOrbAgent: React.FC<SiriOrbAgentProps> = ({
             fill="url(#bluePurple)"
           />
 
-          {/* Star at the end */}
+          {/* Enhanced star at the end */}
           <G transform={`translate(${starX}, ${starY})`}>
             <Path
               d={`M 0 ${-starSize} L ${starSize * 0.3} ${-starSize * 0.3} L ${starSize} 0 L ${starSize * 0.3} ${starSize * 0.3} L 0 ${starSize} L ${-starSize * 0.3} ${starSize * 0.3} L ${-starSize} 0 L ${-starSize * 0.3} ${-starSize * 0.3} Z`}
               fill="#9B59B6"
               opacity={opacityValue}
+            />
+            {/* Inner glow for star */}
+            <Circle
+              cx={0}
+              cy={0}
+              r={starSize * 0.3}
+              fill="#FFFFFF"
+              opacity={opacityValue * 0.6}
             />
           </G>
         </G>
