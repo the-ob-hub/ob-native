@@ -70,7 +70,38 @@ export const ColorPickerCircles: React.FC = () => {
 
   const handleGradientSelect = (gradientName: string) => {
     setSelectedGradient(gradientName);
-    setShowColorPicker(false);
+    
+    // Animación de salida (inversa a la entrada)
+    animations.forEach((anim, index) => {
+      const delay = index * 50; // Más rápido al salir
+      Animated.parallel([
+        Animated.spring(anim.scale, {
+          toValue: 0,
+          delay,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7,
+        }),
+        Animated.timing(anim.opacity, {
+          toValue: 0,
+          delay,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(anim.translateX, {
+          toValue: -avatarSize, // Volver a la posición inicial (detrás del avatar)
+          delay,
+          useNativeDriver: true,
+          tension: 60,
+          friction: 8,
+        }),
+      ]).start(() => {
+        // Ocultar el picker solo después de que todas las animaciones terminen
+        if (index === animations.length - 1) {
+          setShowColorPicker(false);
+        }
+      });
+    });
   };
 
   if (!showColorPicker) return null;
