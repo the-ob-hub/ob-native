@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import Svg, { Ellipse } from 'react-native-svg';
+import Svg, { Ellipse, G } from 'react-native-svg';
 
 interface SiriOrbAgentProps {
   size?: number;
