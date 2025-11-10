@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute', // Posicionamiento absoluto para no afectar el layout
     left: avatarSize + SPACING.sm, // Posición a la derecha del avatar
-    top: avatarSize * 0.2 - 3, // 20% más abajo menos 3px (más arriba)
+    top: avatarSize * 0.2 - 8, // 20% más abajo menos 8px (5px más arriba que antes)
     flexDirection: 'row',
     alignItems: 'center',
   },
