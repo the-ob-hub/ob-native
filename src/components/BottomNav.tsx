@@ -285,7 +285,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeIndex, onItemPress }
           if (activeIndex === 3) {
             return (
               <View style={styles.agentIconOffset}>
-                <SiriOrbAgent size={52} isActive={true} />
+                <SiriOrbAgent size={44} isActive={true} />
               </View>
             );
           }
