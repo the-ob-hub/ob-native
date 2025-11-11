@@ -10,6 +10,7 @@ import Animated, {
 import Svg, { Path, Defs, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../constants';
 import { BalanceActions } from './BalanceActions';
+import { useLogs } from '../contexts/LogContext';
 
 const AnimatedText = Animated.createAnimatedComponent(Text);
 
@@ -131,6 +132,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     BalanceCardState.COLLAPSED
   );
   const [selectedAction, setSelectedAction] = useState<string>('');
+  const { addLog } = useLogs();
 
   // Shared value para la altura animada
   const height = useSharedValue(COLLAPSED_HEIGHT);
@@ -147,6 +149,19 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   const handleStateChange = (newState: BalanceCardState, actionId?: string) => {
     const targetHeight = getHeightForState(newState);
     
+    // Log del cambio de estado/background
+    const stateLabels: Record<BalanceCardState, string> = {
+      [BalanceCardState.COLLAPSED]: 'Colapsado',
+      [BalanceCardState.EXPANDED_LOW]: 'Expandido Bajo',
+      [BalanceCardState.EXPANDED_MEDIUM]: 'Expandido Medio',
+      [BalanceCardState.EXPANDED_HIGH]: 'Expandido Alto',
+    };
+    
+    addLog(`🔄 BalanceCard: Cambio de estado a "${stateLabels[newState]}" (${newState})`);
+    if (actionId) {
+      addLog(`📱 BalanceCard: Acción seleccionada: "${actionId}"`);
+    }
+    
     // Animación suave usando spring
     height.value = withSpring(targetHeight, {
       damping: 15,
@@ -162,6 +177,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
   // Función para colapsar el card cuando se toca el saldo
   const handleCollapse = () => {
+    addLog(`👆 BalanceCard: Tap en componente Saldo - Colapsando card`);
     handleStateChange(BalanceCardState.COLLAPSED);
     setSelectedAction('');
   };

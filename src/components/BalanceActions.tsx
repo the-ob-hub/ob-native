@@ -3,57 +3,71 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { COLORS, SPACING, FONTS } from '../constants';
 import { BalanceCardState } from './BalanceCard';
+import { useLogs } from '../contexts/LogContext';
 
 interface BalanceActionsProps {
   currentState: BalanceCardState;
   onActionPress: (state: BalanceCardState, actionId: string) => void;
 }
 
-// Iconos de acción basados en el SVG de referencia
+// Iconos de acción basados en el diseño del menú
+// Agregar: flecha hacia abajo simple
 const AgregarIcon = ({ isActive }: { isActive: boolean }) => (
   <Svg width={44} height={44} viewBox="0 0 44 44">
     <Circle cx="22" cy="22" r="21" fill={isActive ? '#000000' : 'transparent'} stroke={COLORS.white} strokeWidth="2" />
     <Path
-      d="M22 14L22 30M14 22L30 22"
+      d="M22 14L22 30M14 22L22 30L30 22"
       stroke={COLORS.white}
       strokeWidth="2"
       strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
     />
   </Svg>
 );
 
+// Enviar: mismo icono que Agregar pero rotado 180 grados a la izquierda + 45 grados más
 const EnviarIcon = ({ isActive }: { isActive: boolean }) => (
   <Svg width={44} height={44} viewBox="0 0 44 44">
     <Circle cx="22" cy="22" r="21" fill={isActive ? '#000000' : 'transparent'} stroke={COLORS.white} strokeWidth="2" />
     <Path
-      d="M14 18L18 22L14 26M30 18L26 22L30 26"
+      d="M22 14L22 30M14 22L22 30L30 22"
       stroke={COLORS.white}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-    />
-    <Path
-      d="M18 22L26 22"
-      stroke={COLORS.white}
-      strokeWidth="2"
-      strokeLinecap="round"
+      fill="none"
+      transform="rotate(-135 22 22)"
     />
   </Svg>
 );
 
+// Exchange: 2 flechas horizontales con ligera diferencia de altura
 const ExchangeIcon = ({ isActive }: { isActive: boolean }) => (
   <Svg width={44} height={44} viewBox="0 0 44 44">
     <Circle cx="22" cy="22" r="21" fill={isActive ? '#000000' : 'transparent'} stroke={COLORS.white} strokeWidth="2" />
+    {/* Flecha hacia la derecha (arriba) */}
     <Path
-      d="M14 18L18 22L14 26M30 18L26 22L30 26M18 22L26 22"
+      d="M12 18L20 18M20 18L16 14M20 18L16 22"
       stroke={COLORS.white}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      fill="none"
+    />
+    {/* Flecha hacia la izquierda (abajo) */}
+    <Path
+      d="M32 26L24 26M24 26L28 22M24 26L28 30"
+      stroke={COLORS.white}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
     />
   </Svg>
 );
 
+// Pagar: símbolo de tarjeta/pago (icono original)
 const PagarIcon = ({ isActive }: { isActive: boolean }) => (
   <Svg width={44} height={44} viewBox="0 0 44 44">
     <Circle cx="22" cy="22" r="21" fill={isActive ? '#000000' : 'transparent'} stroke={COLORS.white} strokeWidth="2" />
@@ -106,6 +120,16 @@ export const BalanceActions: React.FC<BalanceActionsProps> = ({
   currentState,
   onActionPress,
 }) => {
+  const { addLog } = useLogs();
+
+  const handleActionPress = (state: BalanceCardState, actionId: string) => {
+    const action = actions.find(a => a.id === actionId);
+    if (action) {
+      addLog(`👆 BalanceActions: Tap en botón "${action.label}" (${actionId})`);
+    }
+    onActionPress(state, actionId);
+  };
+
   return (
     <View style={styles.container}>
       {actions.map((action) => {
@@ -116,7 +140,7 @@ export const BalanceActions: React.FC<BalanceActionsProps> = ({
           <TouchableOpacity
             key={action.id}
             style={styles.actionButton}
-            onPress={() => onActionPress(action.state, action.id)}
+            onPress={() => handleActionPress(action.state, action.id)}
             activeOpacity={0.8}
           >
             <IconComponent isActive={isActive} />
