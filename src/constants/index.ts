@@ -44,6 +44,11 @@ export const FONTS = {
     extraBold: 'Poppins-ExtraBold',
     black: 'Poppins-Black',
   },
+  inter: {
+    regular: 'Inter',
+    bold: 'Inter-Bold',
+    extraBold: 'Inter-ExtraBold',
+  },
 };
 
 export const AGENT_CONFIG = {

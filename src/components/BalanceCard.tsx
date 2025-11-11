@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
+  useAnimatedProps,
 } from 'react-native-reanimated';
 import Svg, { Path, Defs, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../constants';
+import { BalanceActions } from './BalanceActions';
+
+const AnimatedText = Animated.createAnimatedComponent(Text);
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -25,25 +30,60 @@ interface BalanceCardProps {
 
 // Componente para mostrar moneda y saldo
 const BalanceDisplay: React.FC<{ balance: number; currency: string }> = ({ balance, currency }) => {
+  // Animación del saldo: empezar desde 90% del valor
+  const animatedBalance = useSharedValue(balance * 0.9);
+  const [displayBalance, setDisplayBalance] = useState(balance * 0.9);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    if (!hasAnimated) {
+      // Animar desde 90% hasta el valor completo solo la primera vez
+      animatedBalance.value = withTiming(balance, {
+        duration: 1500,
+      });
+      setHasAnimated(true);
+    } else {
+      // Si ya animó, solo actualizar el valor directamente
+      animatedBalance.value = balance;
+      setDisplayBalance(balance);
+    }
+  }, [balance, hasAnimated]);
+
+  // Actualizar el valor mostrado durante la animación
+  useEffect(() => {
+    if (!hasAnimated) {
+      const interval = setInterval(() => {
+        setDisplayBalance(animatedBalance.value);
+      }, 16); // ~60fps
+
+      return () => clearInterval(interval);
+    }
+  }, [hasAnimated]);
+
   // Formatear el número con separadores de miles y decimales
-  const balanceStr = balance.toLocaleString('es-AR', { 
+  const balanceStr = displayBalance.toLocaleString('es-AR', { 
     minimumFractionDigits: 2, 
     maximumFractionDigits: 2,
     useGrouping: true,
   });
   
-  // Dividir en parte entera y decimal (puede usar punto o coma dependiendo de la localización)
+  // Dividir en parte entera y decimal (sin coma)
   const parts = balanceStr.replace(/\./g, '|').split(',');
   const integerPart = parts[0].replace(/\|/g, '.'); // Restaurar puntos de miles
   const decimalPart = parts[1] || '00';
   
   return (
     <View style={styles.balanceDisplayContainer}>
-      <View style={styles.balanceRow}>
-        <Text style={styles.currencyText}>{currency}</Text>
-        <View style={styles.balanceAmountContainer}>
-          <Text style={styles.balanceInteger}>{integerPart}</Text>
-          <Text style={styles.balanceDecimal}>,{decimalPart}</Text>
+      <View style={styles.balanceContentWrapper}>
+        {/* Texto "Saldo" */}
+        <Text style={styles.saldoLabel}>Saldo</Text>
+        
+        <View style={styles.balanceRow}>
+          <Text style={styles.currencyText}>{currency}</Text>
+          <View style={styles.balanceAmountContainer}>
+            <Text style={styles.balanceInteger}>{integerPart}</Text>
+            <Text style={styles.balanceDecimal}>{decimalPart}</Text>
+          </View>
         </View>
       </View>
     </View>
@@ -86,6 +126,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   const [currentState, setCurrentState] = useState<BalanceCardState>(
     BalanceCardState.COLLAPSED
   );
+  const [selectedAction, setSelectedAction] = useState<string>('');
 
   // Shared value para la altura animada
   const height = useSharedValue(COLLAPSED_HEIGHT);
@@ -99,7 +140,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   });
 
   // Función para cambiar de estado con animación
-  const handleStateChange = (newState: BalanceCardState) => {
+  const handleStateChange = (newState: BalanceCardState, actionId?: string) => {
     const targetHeight = getHeightForState(newState);
     
     // Animación suave usando spring
@@ -110,6 +151,9 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     });
 
     setCurrentState(newState);
+    if (actionId) {
+      setSelectedAction(actionId);
+    }
   };
 
   return (
@@ -161,67 +205,22 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         <BalanceDisplay balance={balance} currency={currency} />
       </View>
 
-      {/* Actions Row - Botones de expansión */}
+      {/* Actions Row - Botones de acción */}
       <View style={styles.actionsRow}>
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            currentState === BalanceCardState.EXPANDED_LOW && styles.actionButtonActive,
-          ]}
-          onPress={() => handleStateChange(BalanceCardState.EXPANDED_LOW)}
-        >
-          <Text
-            style={[
-              styles.actionButtonText,
-              currentState === BalanceCardState.EXPANDED_LOW && styles.actionButtonTextActive,
-            ]}
-          >
-            Low
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            currentState === BalanceCardState.EXPANDED_MEDIUM && styles.actionButtonActive,
-          ]}
-          onPress={() => handleStateChange(BalanceCardState.EXPANDED_MEDIUM)}
-        >
-          <Text
-            style={[
-              styles.actionButtonText,
-              currentState === BalanceCardState.EXPANDED_MEDIUM && styles.actionButtonTextActive,
-            ]}
-          >
-            Medium
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            currentState === BalanceCardState.EXPANDED_HIGH && styles.actionButtonActive,
-          ]}
-          onPress={() => handleStateChange(BalanceCardState.EXPANDED_HIGH)}
-        >
-          <Text
-            style={[
-              styles.actionButtonText,
-              currentState === BalanceCardState.EXPANDED_HIGH && styles.actionButtonTextActive,
-            ]}
-          >
-            High
-          </Text>
-        </TouchableOpacity>
+        <BalanceActions
+          currentState={currentState}
+          onActionPress={(state, actionId) => handleStateChange(state, actionId)}
+        />
       </View>
 
       {/* Expandable Area - Contenido que crece */}
       <View style={styles.expandableArea}>
         <Text style={styles.expandableContent}>
           {currentState === BalanceCardState.COLLAPSED && 'Colapsado'}
-          {currentState === BalanceCardState.EXPANDED_LOW && 'Expandido Low (20%)'}
-          {currentState === BalanceCardState.EXPANDED_MEDIUM && 'Expandido Medium (50%)'}
-          {currentState === BalanceCardState.EXPANDED_HIGH && 'Expandido High (hasta navbar)'}
+          {currentState === BalanceCardState.EXPANDED_LOW && 'Exchange'}
+          {currentState === BalanceCardState.EXPANDED_MEDIUM && 
+            (selectedAction === 'agregar' ? 'Agregar' : 'Pagar')}
+          {currentState === BalanceCardState.EXPANDED_HIGH && 'Enviar'}
         </Text>
       </View>
     </Animated.View>
@@ -231,7 +230,10 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'transparent',
-    borderRadius: BORDER_RADIUS.xl,
+    borderTopLeftRadius: 0, // Esquina superior izquierda recta
+    borderTopRightRadius: 0, // Esquina superior derecha recta
+    borderBottomLeftRadius: BORDER_RADIUS.xl, // Esquina inferior izquierda con radio
+    borderBottomRightRadius: BORDER_RADIUS.xl, // Esquina inferior derecha con radio
     width: SCREEN_WIDTH, // 100% del ancho
     marginHorizontal: 0, // Sin márgenes horizontales
     marginTop: 0, // Pegado al header (el headerSpacer ya compensa la altura del header)
@@ -258,13 +260,26 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   header: {
-    marginTop: SCREEN_HEIGHT * 0.03, // 3% margen superior
+    marginTop: SCREEN_HEIGHT * 0.0075, // 0.75% margen superior (50% menos que antes)
     marginBottom: SCREEN_HEIGHT * 0.03, // 3% margen inferior
     position: 'relative',
     zIndex: 1, // Asegurar que el contenido esté sobre el fondo
   },
   balanceDisplayContainer: {
     alignItems: 'center', // Centrado respecto al BalanceCard
+    width: '100%',
+  },
+  balanceContentWrapper: {
+    alignItems: 'center', // Contenido centrado
+    width: '100%',
+  },
+  saldoLabel: {
+    fontSize: 18, // Más grande que USDc (14) pero más chico que centavos (28)
+    fontFamily: FONTS.poppins.light,
+    color: COLORS.textSecondary, // Mismo color que los centavos
+    marginTop: 0, // Sin margen superior para pegarse más al techo
+    marginBottom: SPACING.lg, // 50% más del margen anterior (SPACING.md * 1.5 = 24px)
+    alignSelf: 'center', // Centrado
   },
   balanceRow: {
     flexDirection: 'row',
@@ -284,9 +299,9 @@ const styles = StyleSheet.create({
   },
   balanceInteger: {
     fontSize: 56, // 4x más grande que base (14 * 4)
-    fontFamily: FONTS.poppins.regular,
+    fontFamily: FONTS.inter.bold, // Inter Bold
     color: COLORS.white, // Blanco puro
-    fontWeight: '400',
+    fontWeight: '700',
     letterSpacing: -0.5, // Letter spacing de -0.5
     lineHeight: 56, // Mismo que fontSize para alineación precisa
   },
@@ -294,41 +309,14 @@ const styles = StyleSheet.create({
     fontSize: 28, // Doble del tamaño actual (14 * 2)
     fontFamily: FONTS.poppins.light,
     color: COLORS.textSecondary,
-    marginLeft: 2, // Pequeño espacio después de la coma
+    marginLeft: 2, // Pequeño espacio después del número
     lineHeight: 28, // Mismo que fontSize
     alignSelf: 'flex-start', // Pegado arriba (ontop)
     paddingTop: 0, // Sin padding superior para que esté pegado arriba
   },
   actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
     position: 'relative',
     zIndex: 1, // Asegurar que los botones estén sobre el fondo
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
-    backgroundColor: COLORS.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  actionButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  actionButtonTextActive: {
-    color: COLORS.white,
   },
   expandableArea: {
     flex: 1,

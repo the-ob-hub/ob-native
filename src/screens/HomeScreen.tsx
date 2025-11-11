@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: SPACING.lg,
     paddingHorizontal: SPACING.lg,
-    backgroundColor: 'transparent', // Sin fondo
+    backgroundColor: '#000000', // Negro pleno
     borderBottomWidth: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
