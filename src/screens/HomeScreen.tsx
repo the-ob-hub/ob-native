@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, SPACING } from '../constants';
+import { COLORS, SPACING, FONTS } from '../constants';
 import { SkeletonScreen } from '../components/SkeletonScreen';
 import { UserAvatar } from '../components/UserAvatar';
 import { ProfileSheet } from '../components/ProfileSheet';
@@ -153,11 +153,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
             >
               <View style={styles.headerSpacer} />
               <BalanceCard balance={125000.50} currency="USDc" />
-              <View style={styles.welcomeContainer}>
-                <Text style={styles.welcomeTitle}>
-                  ¡Bienvenido{currentUser?.fullName ? `, ${currentUser.fullName.split(' ')[0]}` : ''}!
-                </Text>
-                <Text style={styles.subtitle}>Esta es tu Home.</Text>
+              <View style={styles.emptyCard}>
+                <Text style={styles.cardTitle}>Movimientos Unificados</Text>
               </View>
             </ScrollView>
           </Animated.View>
@@ -221,23 +218,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.white,
   },
-  welcomeContainer: {
-    alignItems: 'center',
-    paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.xl,
+  emptyCard: {
+    width: '95%',
+    height: 300,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Negro 70% transparente (30% opacidad)
+    borderRadius: 24,
+    alignSelf: 'center',
+    marginTop: SPACING.xl,
+    padding: SPACING.lg,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
-  welcomeTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: COLORS.white,
-    textAlign: 'center',
-    marginBottom: SPACING.md,
-  },
-  subtitle: {
-    fontSize: 20,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    marginBottom: SPACING.lg,
+  cardTitle: {
+    fontSize: 18, // Un poco más chico que 20px
+    fontFamily: FONTS.poppins.bold,
+    color: '#6E6E6E',
   },
 });
 

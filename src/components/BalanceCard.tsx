@@ -29,7 +29,7 @@ interface BalanceCardProps {
 }
 
 // Componente para mostrar moneda y saldo
-const BalanceDisplay: React.FC<{ balance: number; currency: string }> = ({ balance, currency }) => {
+const BalanceDisplay: React.FC<{ balance: number; currency: string; onCollapse?: () => void }> = ({ balance, currency, onCollapse }) => {
   // Animación del saldo: empezar desde 90% del valor
   const animatedBalance = useSharedValue(balance * 0.9);
   const [displayBalance, setDisplayBalance] = useState(balance * 0.9);
@@ -73,7 +73,11 @@ const BalanceDisplay: React.FC<{ balance: number; currency: string }> = ({ balan
   const decimalPart = parts[1] || '00';
   
   return (
-    <View style={styles.balanceDisplayContainer}>
+    <TouchableOpacity 
+      style={styles.balanceDisplayContainer}
+      onPress={onCollapse}
+      activeOpacity={0.8}
+    >
       <View style={styles.balanceContentWrapper}>
         {/* Texto "Saldo" */}
         <Text style={styles.saldoLabel}>Saldo</Text>
@@ -86,7 +90,7 @@ const BalanceDisplay: React.FC<{ balance: number; currency: string }> = ({ balan
           </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -156,6 +160,12 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     }
   };
 
+  // Función para colapsar el card cuando se toca el saldo
+  const handleCollapse = () => {
+    handleStateChange(BalanceCardState.COLLAPSED);
+    setSelectedAction('');
+  };
+
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       {/* Background SVG en la parte inferior */}
@@ -202,7 +212,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
       {/* Header - Moneda y Saldo */}
       <View style={styles.header}>
-        <BalanceDisplay balance={balance} currency={currency} />
+        <BalanceDisplay balance={balance} currency={currency} onCollapse={handleCollapse} />
       </View>
 
       {/* Actions Row - Botones de acción */}
