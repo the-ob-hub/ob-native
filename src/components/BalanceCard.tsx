@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
+import Svg, { Path, Defs, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../constants';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -113,6 +114,48 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
+      {/* Background SVG en la parte inferior */}
+      <View style={styles.backgroundContainer}>
+        <Svg 
+          width={SCREEN_WIDTH} 
+          height={(SCREEN_WIDTH / 390) * 782} 
+          viewBox="0 0 390 782" 
+          style={styles.backgroundSvg}
+          preserveAspectRatio="xMidYMin slice"
+        >
+          <Defs>
+            <LinearGradient id="paint0_linear_30_1301" x1="124" y1="468" x2="54.8275" y2="739.71" gradientUnits="userSpaceOnUse">
+              <Stop offset="0" stopColor="#45002D" stopOpacity="0" />
+              <Stop offset="1" stopColor="#AB006F" stopOpacity="0.34" />
+            </LinearGradient>
+            <RadialGradient id="paint1_radial_30_1301" cx="0" cy="0" r="1" gradientTransform="matrix(369 830.5 -780.554 340.303 21 75.5)" gradientUnits="userSpaceOnUse">
+              <Stop offset="0.673912" stopColor="#C31E20" stopOpacity="0" />
+              <Stop offset="1" stopColor="#DA7D03" />
+            </RadialGradient>
+            <LinearGradient id="paint2_linear_30_1301" x1="195" y1="-133" x2="195" y2="353.5" gradientUnits="userSpaceOnUse">
+              <Stop offset="0" stopColor="#000000" stopOpacity="1" />
+              <Stop offset="1" stopColor="#000000" stopOpacity="1" />
+            </LinearGradient>
+          </Defs>
+          {/* Tercer layer - Negro sólido (debajo) */}
+          <Path
+            d="M0 50C0 22.3857 22.3858 0 50 0H340C367.614 0 390 22.3858 390 50V731.5C390 759.114 367.614 781.5 340 781.5H50C22.3858 781.5 0 759.114 0 731.5V50Z"
+            fill="#000000"
+            fillOpacity="1"
+          />
+          {/* Primer layer - Gradiente lineal (medio) */}
+          <Path
+            d="M0 50C0 22.3857 22.3858 0 50 0H340C367.614 0 390 22.3858 390 50V731.5C390 759.114 367.614 781.5 340 781.5H50C22.3858 781.5 0 759.114 0 731.5V50Z"
+            fill="url(#paint0_linear_30_1301)"
+          />
+          {/* Segundo layer - Gradiente radial (arriba) */}
+          <Path
+            d="M0 50C0 22.3857 22.3858 0 50 0H340C367.614 0 390 22.3858 390 50V731.5C390 759.114 367.614 781.5 340 781.5H50C22.3858 781.5 0 759.114 0 731.5V50Z"
+            fill="url(#paint1_radial_30_1301)"
+          />
+        </Svg>
+      </View>
+
       {/* Header - Moneda y Saldo */}
       <View style={styles.header}>
         <BalanceDisplay balance={balance} currency={currency} />
@@ -187,7 +230,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'transparent',
     borderRadius: BORDER_RADIUS.xl,
     width: SCREEN_WIDTH, // 100% del ancho
     marginHorizontal: 0, // Sin márgenes horizontales
@@ -199,17 +242,33 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     overflow: 'hidden',
+    position: 'relative',
+  },
+  backgroundContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: SCREEN_WIDTH,
+    height: (SCREEN_WIDTH / 390) * 782, // Escalar proporcionalmente (nueva altura: 782)
+    zIndex: 0,
+  },
+  backgroundSvg: {
+    position: 'absolute',
+    bottom: 0,
   },
   header: {
     marginTop: SCREEN_HEIGHT * 0.03, // 3% margen superior
     marginBottom: SCREEN_HEIGHT * 0.03, // 3% margen inferior
+    position: 'relative',
+    zIndex: 1, // Asegurar que el contenido esté sobre el fondo
   },
   balanceDisplayContainer: {
-    alignItems: 'flex-start',
+    alignItems: 'center', // Centrado respecto al BalanceCard
   },
   balanceRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center', // USDc en el medio verticalmente
     flexWrap: 'wrap',
   },
   currencyText: {
@@ -220,24 +279,33 @@ const styles = StyleSheet.create({
   },
   balanceAmountContainer: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'flex-start', // Centavos arriba (ontop)
+    position: 'relative',
   },
   balanceInteger: {
     fontSize: 56, // 4x más grande que base (14 * 4)
     fontFamily: FONTS.poppins.regular,
-    color: COLORS.text,
+    color: COLORS.white, // Blanco puro
     fontWeight: '400',
+    letterSpacing: -0.5, // Letter spacing de -0.5
+    lineHeight: 56, // Mismo que fontSize para alineación precisa
   },
   balanceDecimal: {
-    fontSize: 14, // Mismo tamaño que moneda (Poppins Light)
+    fontSize: 28, // Doble del tamaño actual (14 * 2)
     fontFamily: FONTS.poppins.light,
     color: COLORS.textSecondary,
+    marginLeft: 2, // Pequeño espacio después de la coma
+    lineHeight: 28, // Mismo que fontSize
+    alignSelf: 'flex-start', // Pegado arriba (ontop)
+    paddingTop: 0, // Sin padding superior para que esté pegado arriba
   },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: SPACING.sm,
     marginBottom: SPACING.md,
+    position: 'relative',
+    zIndex: 1, // Asegurar que los botones estén sobre el fondo
   },
   actionButton: {
     flex: 1,
@@ -267,6 +335,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: SPACING.lg,
+    position: 'relative',
+    zIndex: 1, // Asegurar que el contenido expandible esté sobre el fondo
   },
   expandableContent: {
     fontSize: 16,
