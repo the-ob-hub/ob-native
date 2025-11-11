@@ -5,7 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { COLORS, SPACING, BORDER_RADIUS } from '../constants';
+import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../constants';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -22,7 +22,34 @@ interface BalanceCardProps {
   currency?: string;
 }
 
-const COLLAPSED_HEIGHT = 120; // Altura colapsada (header + acciones)
+// Componente para mostrar moneda y saldo
+const BalanceDisplay: React.FC<{ balance: number; currency: string }> = ({ balance, currency }) => {
+  // Formatear el número con separadores de miles y decimales
+  const balanceStr = balance.toLocaleString('es-AR', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2,
+    useGrouping: true,
+  });
+  
+  // Dividir en parte entera y decimal (puede usar punto o coma dependiendo de la localización)
+  const parts = balanceStr.replace(/\./g, '|').split(',');
+  const integerPart = parts[0].replace(/\|/g, '.'); // Restaurar puntos de miles
+  const decimalPart = parts[1] || '00';
+  
+  return (
+    <View style={styles.balanceDisplayContainer}>
+      <View style={styles.balanceRow}>
+        <Text style={styles.currencyText}>{currency}</Text>
+        <View style={styles.balanceAmountContainer}>
+          <Text style={styles.balanceInteger}>{integerPart}</Text>
+          <Text style={styles.balanceDecimal}>,{decimalPart}</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const COLLAPSED_HEIGHT = 240; // Altura colapsada (doble del anterior: 120 * 2)
 const NAVBAR_HEIGHT = 80; // Altura aproximada del navbar
 const HEADER_HEIGHT = 140; // Altura aproximada del header (60 paddingTop + 24 paddingBottom + avatar)
 const HEADER_MARGIN_PERCENT = 0.05; // 5% de margen respecto al header
@@ -86,14 +113,9 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      {/* Header - Balance y Moneda */}
+      {/* Header - Moneda y Saldo */}
       <View style={styles.header}>
-        <View style={styles.balanceContainer}>
-          <Text style={styles.currencyLabel}>Balance</Text>
-          <Text style={styles.balanceAmount}>
-            {currency} {balance.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </Text>
-        </View>
+        <BalanceDisplay balance={balance} currency={currency} />
       </View>
 
       {/* Actions Row - Botones de expansión */}
@@ -179,21 +201,37 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   header: {
-    marginBottom: SPACING.md,
+    marginTop: SCREEN_HEIGHT * 0.03, // 3% margen superior
+    marginBottom: SCREEN_HEIGHT * 0.03, // 3% margen inferior
   },
-  balanceContainer: {
+  balanceDisplayContainer: {
     alignItems: 'flex-start',
   },
-  currencyLabel: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
-    marginBottom: SPACING.xs,
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
   },
-  balanceAmount: {
-    fontSize: 32,
-    fontWeight: '700',
+  currencyText: {
+    fontSize: 14, // Mismo tamaño que tenía "Balance"
+    fontFamily: FONTS.poppins.light,
+    color: COLORS.textSecondary,
+    marginRight: SPACING.xs,
+  },
+  balanceAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  balanceInteger: {
+    fontSize: 56, // 4x más grande que base (14 * 4)
+    fontFamily: FONTS.poppins.regular,
     color: COLORS.text,
+    fontWeight: '400',
+  },
+  balanceDecimal: {
+    fontSize: 14, // Mismo tamaño que moneda (Poppins Light)
+    fontFamily: FONTS.poppins.light,
+    color: COLORS.textSecondary,
   },
   actionsRow: {
     flexDirection: 'row',

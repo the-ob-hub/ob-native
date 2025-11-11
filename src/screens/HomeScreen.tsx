@@ -152,7 +152,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
               contentInsetAdjustmentBehavior="automatic"
             >
               <View style={styles.headerSpacer} />
-              <BalanceCard balance={125000.50} currency="ARS" />
+              <BalanceCard balance={125000.50} currency="USDc" />
               <View style={styles.welcomeContainer}>
                 <Text style={styles.welcomeTitle}>
                   ¡Bienvenido{currentUser?.fullName ? `, ${currentUser.fullName.split(' ')[0]}` : ''}!

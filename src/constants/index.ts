@@ -31,6 +31,21 @@ export const BORDER_RADIUS = {
   round: 9999,
 };
 
+// Tipografía Poppins
+export const FONTS = {
+  poppins: {
+    thin: 'Poppins-Thin',
+    extraLight: 'Poppins-ExtraLight',
+    light: 'Poppins-Light',
+    regular: 'Poppins-Regular',
+    medium: 'Poppins-Medium',
+    semiBold: 'Poppins-SemiBold',
+    bold: 'Poppins-Bold',
+    extraBold: 'Poppins-ExtraBold',
+    black: 'Poppins-Black',
+  },
+};
+
 export const AGENT_CONFIG = {
   name: 'Onda',
   model: 'gpt-4o',
