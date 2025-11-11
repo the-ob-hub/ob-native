@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, SPACING } from '../constants';
 import { SkeletonScreen } from '../components/SkeletonScreen';
 import { UserAvatar } from '../components/UserAvatar';
 import { ProfileSheet } from '../components/ProfileSheet';
 import { ColorPickerCircles } from '../components/ColorPickerCircles';
+import { BalanceCard } from '../components/BalanceCard';
 import { User } from '../models';
 import { db } from '../data/database';
 import { useBackgroundColor } from '../contexts/BackgroundColorContext';
@@ -144,12 +145,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
                 <ColorPickerCircles />
               </View>
             </View>
-            <View style={styles.welcomeContainer}>
-              <Text style={styles.welcomeTitle}>
-                ¡Bienvenido{currentUser?.fullName ? `, ${currentUser.fullName.split(' ')[0]}` : ''}!
-              </Text>
-              <Text style={styles.subtitle}>Esta es tu Home.</Text>
-            </View>
+            <ScrollView 
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              contentInsetAdjustmentBehavior="automatic"
+            >
+              <View style={styles.headerSpacer} />
+              <BalanceCard balance={125000.50} currency="ARS" />
+              <View style={styles.welcomeContainer}>
+                <Text style={styles.welcomeTitle}>
+                  ¡Bienvenido{currentUser?.fullName ? `, ${currentUser.fullName.split(' ')[0]}` : ''}!
+                </Text>
+                <Text style={styles.subtitle}>Esta es tu Home.</Text>
+              </View>
+            </ScrollView>
           </Animated.View>
 
           <ProfileSheet
@@ -173,15 +183,29 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: SPACING.xl,
+  },
+  headerSpacer: {
+    height: 60, // Solo el paddingTop del header (60px) para que el BalanceCard quede más arriba
+  },
   header: {
     paddingTop: 60,
     paddingBottom: SPACING.lg,
     paddingHorizontal: SPACING.lg,
-    backgroundColor: 'transparent',
+    backgroundColor: 'transparent', // Sin fondo
     borderBottomWidth: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    position: 'absolute', // Posicionar absolutamente para que no oculte el BalanceCard
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10, // Asegurar que esté sobre el contenido pero no bloquee el BalanceCard
   },
   avatarRow: {
     flexDirection: 'row',
@@ -198,10 +222,9 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
   welcomeContainer: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.xl,
   },
   welcomeTitle: {
     fontSize: 32,

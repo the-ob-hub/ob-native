@@ -7,5 +7,7 @@ module.exports = {
       },
     ],
   ],
-  plugins: [],
+  plugins: [
+    'react-native-reanimated/plugin', // Debe ser el último plugin
+  ],
 };
