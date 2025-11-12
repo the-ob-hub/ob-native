@@ -26,11 +26,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const { setShowColorPicker, setAvatarPosition } = useBackgroundColor();
 
   // Mock balances - TODO: Reemplazar con llamada al backend
+  // Orden: 1. UYU (Pesos), 2. USD, 3. USDc
   const getMockBalances = (): Balance[] => [
     { 
-      currency: 'USDc', 
-      amount: 125000.50, 
-      availableActions: ['agregar', 'enviar', 'exchange', 'pagar'] 
+      currency: 'UYU', 
+      amount: 45000.00, 
+      availableActions: ['agregar', 'pagar', 'exchange'] 
     },
     { 
       currency: 'USD', 
@@ -38,9 +39,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
       availableActions: ['agregar', 'enviar', 'exchange'] 
     },
     { 
-      currency: 'UYU', 
-      amount: 45000.00, 
-      availableActions: ['agregar', 'pagar', 'exchange'] 
+      currency: 'USDc', 
+      amount: 125000.50, 
+      availableActions: ['agregar', 'enviar', 'exchange', 'pagar'] 
     },
   ];
 
@@ -162,6 +163,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
         <SkeletonScreen />
       ) : (
         <>
+          {/* Fondo negro absoluto para pull-to-refresh */}
+          <View style={styles.blackBackground} />
+          
           <Animated.View
             style={[
               styles.content,
@@ -186,6 +190,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               contentInsetAdjustmentBehavior="automatic"
+              bounces={true}
+              alwaysBounceVertical={true}
+              contentInset={{ top: 0, bottom: 0 }}
+              contentOffset={{ x: 0, y: 0 }}
             >
               <View style={styles.headerSpacer} />
               <BalanceCard balances={balances.length > 0 ? balances : getMockBalances()} />
@@ -211,16 +219,28 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     height: '100%',
-    backgroundColor: 'transparent',
+    backgroundColor: '#000000', // Fondo negro para pull-to-refresh
+  },
+  blackBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#000000',
+    zIndex: 0,
   },
   content: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     paddingBottom: SPACING.xl,
+    backgroundColor: 'transparent',
   },
   headerSpacer: {
     height: 60, // Solo el paddingTop del header (60px) para que el BalanceCard quede más arriba

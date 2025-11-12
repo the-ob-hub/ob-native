@@ -4,12 +4,14 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { COLORS, SPACING, FONTS } from '../constants';
 import { BalanceCardState } from './BalanceCard';
 import { useLogs } from '../contexts/LogContext';
-import { ActionId } from '../models';
+import { ActionId, Balance } from '../models';
+import { trackingService } from '../services/analytics/trackingService';
 
 interface BalanceActionsProps {
   currentState: BalanceCardState;
   onActionPress: (state: BalanceCardState, actionId: string) => void;
   availableActions?: ActionId[];
+  currentBalance?: Balance;
 }
 
 // Iconos de acción basados en el diseño del menú
@@ -122,6 +124,7 @@ export const BalanceActions: React.FC<BalanceActionsProps> = ({
   currentState,
   onActionPress,
   availableActions = ['agregar', 'enviar', 'exchange', 'pagar'], // Default: todas disponibles
+  currentBalance,
 }) => {
   const { addLog } = useLogs();
 
@@ -129,6 +132,15 @@ export const BalanceActions: React.FC<BalanceActionsProps> = ({
     const action = actions.find(a => a.id === actionId);
     if (action) {
       addLog(`👆 BalanceActions: Tap en botón "${action.label}" (${actionId})`);
+      
+      // Trackear el click en la acción
+      if (currentBalance) {
+        trackingService.trackBalanceAction(
+          actionId,
+          currentBalance.currency,
+          currentBalance.amount
+        );
+      }
     }
     onActionPress(state, actionId);
   };

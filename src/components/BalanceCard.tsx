@@ -10,11 +10,12 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import Svg, { Path, Defs, LinearGradient, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../constants';
 import { BalanceActions } from './BalanceActions';
+import { BalanceBackground } from './BalanceBackground';
 import { useLogs } from '../contexts/LogContext';
 import { Balance, ActionId } from '../models';
+import { trackingService } from '../services/analytics/trackingService';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -176,12 +177,26 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   const height = useSharedValue(COLLAPSED_HEIGHT);
 
   // Función para cambiar de balance (desde worklet)
-  const changeBalance = useCallback((newIndex: number) => {
-    if (newIndex >= 0 && newIndex < balances.length) {
+  const changeBalance = useCallback((newIndex: number, swipeDirection?: 'left' | 'right') => {
+    if (newIndex >= 0 && newIndex < balances.length && newIndex !== currentBalanceIndex) {
+      const fromCurrency = balances[currentBalanceIndex].currency;
+      const toCurrency = balances[newIndex].currency;
+      
+      // Trackear el evento de swipe
+      if (swipeDirection) {
+        trackingService.trackBalanceSwipe(
+          fromCurrency,
+          toCurrency,
+          currentBalanceIndex,
+          newIndex,
+          swipeDirection
+        );
+      }
+      
       setCurrentBalanceIndex(newIndex);
-      addLog(`🔄 BalanceCard: Cambio a balance ${balances[newIndex].currency}`);
+      addLog(`🔄 BalanceCard: Cambio a balance ${toCurrency}`);
     }
-  }, [balances, addLog]);
+  }, [balances, currentBalanceIndex, addLog]);
 
   // Gesture handler para swipe horizontal (solo cuando está COLLAPSED)
   const panGesture = Gesture.Pan()
@@ -212,13 +227,14 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         }
 
         if (newIndex !== currentBalanceIndex) {
+          const swipeDirection: 'left' | 'right' = event.translationX < 0 ? 'left' : 'right';
           const targetX = -(newIndex * SCREEN_WIDTH);
           translateX.value = withSpring(targetX, {
             damping: 20,
             stiffness: 300,
             mass: 0.5,
           }, () => {
-            runOnJS(changeBalance)(newIndex);
+            runOnJS(changeBalance)(newIndex, swipeDirection);
             // Reset a posición exacta después de la animación
             translateX.value = targetX;
           });
@@ -338,40 +354,8 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
           cardStyle,
         ]}
       >
-        {/* Background SVG */}
-        <View style={styles.backgroundContainer}>
-          <Svg 
-            width={SCREEN_WIDTH} 
-            height={(SCREEN_WIDTH / 390) * 782} 
-            viewBox="0 0 390 782" 
-            style={styles.backgroundSvg}
-            preserveAspectRatio="xMidYMin slice"
-          >
-            <Defs>
-              <LinearGradient id={`paint0_linear_${index}`} x1="124" y1="468" x2="54.8275" y2="739.71" gradientUnits="userSpaceOnUse">
-                <Stop offset="0" stopColor="#45002D" stopOpacity="0" />
-                <Stop offset="1" stopColor="#AB006F" stopOpacity="0.34" />
-              </LinearGradient>
-              <RadialGradient id={`paint1_radial_${index}`} cx="0" cy="0" r="1" gradientTransform="matrix(369 830.5 -780.554 340.303 21 75.5)" gradientUnits="userSpaceOnUse">
-                <Stop offset="0.673912" stopColor="#C31E20" stopOpacity="0" />
-                <Stop offset="1" stopColor="#DA7D03" />
-              </RadialGradient>
-            </Defs>
-            <Path
-              d="M0 50C0 22.3857 22.3858 0 50 0H340C367.614 0 390 22.3858 390 50V731.5C390 759.114 367.614 781.5 340 781.5H50C22.3858 781.5 0 759.114 0 731.5V50Z"
-              fill="#000000"
-              fillOpacity="1"
-            />
-            <Path
-              d="M0 50C0 22.3857 22.3858 0 50 0H340C367.614 0 390 22.3858 390 50V731.5C390 759.114 367.614 781.5 340 781.5H50C22.3858 781.5 0 759.114 0 731.5V50Z"
-              fill={`url(#paint0_linear_${index})`}
-            />
-            <Path
-              d="M0 50C0 22.3857 22.3858 0 50 0H340C367.614 0 390 22.3858 390 50V731.5C390 759.114 367.614 781.5 340 781.5H50C22.3858 781.5 0 759.114 0 731.5V50Z"
-              fill={`url(#paint1_radial_${index})`}
-            />
-          </Svg>
-        </View>
+        {/* Background SVG - Diferente según moneda */}
+        <BalanceBackground currency={balance.currency} index={index} />
 
         {/* Header - Moneda y Saldo */}
         <View style={styles.header}>
@@ -389,6 +373,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
             currentState={currentState}
             onActionPress={(state, actionId) => handleStateChange(state, actionId)}
             availableActions={balance.availableActions}
+            currentBalance={balance}
           />
         </View>
 
@@ -453,19 +438,6 @@ const styles = StyleSheet.create({
     height: '100%',
     padding: SPACING.lg,
     position: 'relative',
-  },
-  backgroundContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    width: SCREEN_WIDTH,
-    height: (SCREEN_WIDTH / 390) * 782,
-    zIndex: 0,
-  },
-  backgroundSvg: {
-    position: 'absolute',
-    bottom: 0,
   },
   header: {
     marginTop: SCREEN_HEIGHT * 0.0075,
