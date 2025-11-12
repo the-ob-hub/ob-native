@@ -4,10 +4,12 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { COLORS, SPACING, FONTS } from '../constants';
 import { BalanceCardState } from './BalanceCard';
 import { useLogs } from '../contexts/LogContext';
+import { ActionId } from '../models';
 
 interface BalanceActionsProps {
   currentState: BalanceCardState;
   onActionPress: (state: BalanceCardState, actionId: string) => void;
+  availableActions?: ActionId[];
 }
 
 // Iconos de acción basados en el diseño del menú
@@ -119,6 +121,7 @@ const actions = [
 export const BalanceActions: React.FC<BalanceActionsProps> = ({
   currentState,
   onActionPress,
+  availableActions = ['agregar', 'enviar', 'exchange', 'pagar'], // Default: todas disponibles
 }) => {
   const { addLog } = useLogs();
 
@@ -130,9 +133,14 @@ export const BalanceActions: React.FC<BalanceActionsProps> = ({
     onActionPress(state, actionId);
   };
 
+  // Filtrar acciones según disponibilidad
+  const filteredActions = actions.filter(action => 
+    availableActions.includes(action.id as ActionId)
+  );
+
   return (
     <View style={styles.container}>
-      {actions.map((action) => {
+      {filteredActions.map((action) => {
         const IconComponent = action.icon;
         const isActive = currentState === action.state;
         

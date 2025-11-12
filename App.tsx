@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingScreen } from './src/features/onboarding/ui/OnboardingScreen';
 import { MainTabs } from './src/navigation/MainTabs';
@@ -88,25 +89,33 @@ function App() {
   };
 
   if (currentScreen === 'splash') {
-    return <SplashScreen onFinish={handleSplashFinish} />;
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SplashScreen onFinish={handleSplashFinish} />
+      </GestureHandlerRootView>
+    );
   }
 
   if (currentScreen === 'onboarding') {
     return (
-      <LogProvider>
-        <BackgroundColorProvider>
-          <OnboardingScreen onComplete={handleOnboardingComplete} />
-        </BackgroundColorProvider>
-      </LogProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <LogProvider>
+          <BackgroundColorProvider>
+            <OnboardingScreen onComplete={handleOnboardingComplete} />
+          </BackgroundColorProvider>
+        </LogProvider>
+      </GestureHandlerRootView>
     );
   }
 
   return (
-    <LogProvider>
-      <BackgroundColorProvider>
-        <MainTabs onLogout={handleLogout} />
-      </BackgroundColorProvider>
-    </LogProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <LogProvider>
+        <BackgroundColorProvider>
+          <MainTabs onLogout={handleLogout} />
+        </BackgroundColorProvider>
+      </LogProvider>
+    </GestureHandlerRootView>
   );
 }
 

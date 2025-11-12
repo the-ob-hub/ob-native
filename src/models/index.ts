@@ -69,3 +69,23 @@ export interface AgentContext {
   systemPrompt: string;
 }
 
+/**
+ * Balance Models
+ */
+export type Currency = 'USDc' | 'USD' | 'UYU';
+
+export type ActionId = 'agregar' | 'enviar' | 'exchange' | 'pagar';
+
+export interface Balance {
+  currency: Currency;
+  amount: number;
+  availableActions: ActionId[];
+}
+
+/**
+ * Balances Response from Backend
+ */
+export interface BalancesResponse {
+  balances: Balance[];
+}
+

@@ -1,0 +1,41 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradiente radial azul para el fondo -->
+    <radialGradient id="blueGradient" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#0066FF" stop-opacity="1" />
+      <stop offset="50%" stop-color="#0052CC" stop-opacity="1" />
+      <stop offset="100%" stop-color="#003D99" stop-opacity="1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Círculo azul con degradado -->
+  <circle
+    cx="512"
+    cy="512"
+    r="486"
+    fill="url(#blueGradient)"
+  />
+  
+  <!-- Eyes (ojitos) - vertical ovals -->
+  <g>
+    <!-- Left eye -->
+    <ellipse
+      cx="420"
+      cy="450"
+      rx="71.68"
+      ry="102.4"
+      fill="#FFFFFF"
+    />
+    
+    <!-- Right eye -->
+    <ellipse
+      cx="604"
+      cy="450"
+      rx="71.68"
+      ry="102.4"
+      fill="#FFFFFF"
+    />
+  </g>
+</svg>
+
+

@@ -7,7 +7,7 @@ import { UserAvatar } from '../components/UserAvatar';
 import { ProfileSheet } from '../components/ProfileSheet';
 import { ColorPickerCircles } from '../components/ColorPickerCircles';
 import { BalanceCard } from '../components/BalanceCard';
-import { User } from '../models';
+import { User, Balance } from '../models';
 import { db } from '../data/database';
 import { useBackgroundColor } from '../contexts/BackgroundColorContext';
 
@@ -19,10 +19,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [balances, setBalances] = useState<Balance[]>([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const avatarRef = useRef<View | null>(null);
   const { setShowColorPicker, setAvatarPosition } = useBackgroundColor();
+
+  // Mock balances - TODO: Reemplazar con llamada al backend
+  const getMockBalances = (): Balance[] => [
+    { 
+      currency: 'USDc', 
+      amount: 125000.50, 
+      availableActions: ['agregar', 'enviar', 'exchange', 'pagar'] 
+    },
+    { 
+      currency: 'USD', 
+      amount: 1250.36, 
+      availableActions: ['agregar', 'enviar', 'exchange'] 
+    },
+    { 
+      currency: 'UYU', 
+      amount: 45000.00, 
+      availableActions: ['agregar', 'pagar', 'exchange'] 
+    },
+  ];
 
   const handleAvatarLongPress = () => {
     if (avatarRef.current) {
@@ -49,7 +69,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
 
   useEffect(() => {
     loadUserData();
+    loadBalances();
   }, []);
+
+  const loadBalances = async () => {
+    try {
+      // TODO: Implementar llamada al backend
+      // const balancesData = await balanceService.getBalances(userId);
+      // setBalances(balancesData.balances);
+      
+      // Por ahora usar mock
+      setBalances(getMockBalances());
+    } catch (error) {
+      console.error('❌ Error cargando balances:', error);
+      // Fallback a mock en caso de error
+      setBalances(getMockBalances());
+    }
+  };
 
   const loadUserData = async () => {
     try {
@@ -152,7 +188,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
               contentInsetAdjustmentBehavior="automatic"
             >
               <View style={styles.headerSpacer} />
-              <BalanceCard balance={125000.50} currency="USDc" />
+              <BalanceCard balances={balances.length > 0 ? balances : getMockBalances()} />
               <View style={styles.emptyCard}>
                 <Text style={styles.cardTitle}>Movimientos Unificados</Text>
               </View>
