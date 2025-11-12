@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -37,24 +37,47 @@ const BalanceDisplay: React.FC<{
   currency: string; 
   onCollapse?: () => void;
   isActive: boolean;
-}> = ({ balance, currency, onCollapse, isActive }) => {
+  shouldAnimate?: boolean; // Control para animar después del swipe
+}> = ({ balance, currency, onCollapse, isActive, shouldAnimate = true }) => {
   const animatedBalance = useSharedValue(balance);
   const [displayBalance, setDisplayBalance] = useState(balance);
-  const previousBalance = useSharedValue(balance);
+  const previousBalanceRef = useRef<number>(balance);
+  const balanceBeforeSwipeRef = useRef<number>(balance);
 
+  // Efecto para cuando cambia el balance
   useEffect(() => {
-    if (isActive && previousBalance.value !== balance) {
-      // Animar desde el valor anterior al nuevo
-      animatedBalance.value = withTiming(balance, {
-        duration: 800,
-      });
-      previousBalance.value = balance;
+    if (isActive && previousBalanceRef.current !== balance) {
+      // Balance cambió
+      if (shouldAnimate) {
+        // Animar desde el valor anterior al nuevo
+        animatedBalance.value = withTiming(balance, {
+          duration: 800,
+        });
+      } else {
+        // Guardar el valor anterior antes de actualizar sin animar (durante el swipe)
+        balanceBeforeSwipeRef.current = previousBalanceRef.current;
+        animatedBalance.value = balance;
+      }
+      previousBalanceRef.current = balance;
     } else if (!isActive) {
       // Si no está activo, mantener el valor actual
       animatedBalance.value = balance;
-      previousBalance.value = balance;
+      previousBalanceRef.current = balance;
+      balanceBeforeSwipeRef.current = balance;
     }
   }, [balance, isActive]);
+
+  // Efecto separado para cuando shouldAnimate cambia a true después del swipe
+  useEffect(() => {
+    if (isActive && shouldAnimate && previousBalanceRef.current === balance) {
+      // shouldAnimate cambió a true después del swipe, animar desde el valor guardado
+      const startValue = balanceBeforeSwipeRef.current;
+      animatedBalance.value = startValue; // Reset al valor anterior
+      animatedBalance.value = withTiming(balance, {
+        duration: 800,
+      });
+    }
+  }, [shouldAnimate, balance, isActive]);
 
   // Actualizar el valor mostrado durante la animación
   useEffect(() => {
@@ -164,6 +187,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     BalanceCardState.COLLAPSED
   );
   const [selectedAction, setSelectedAction] = useState<string>('');
+  const [shouldAnimateBalance, setShouldAnimateBalance] = useState(true);
   const { addLog } = useLogs();
 
   const currentBalance = balances[currentBalanceIndex];
@@ -175,6 +199,13 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
   // Shared value para la altura animada
   const height = useSharedValue(COLLAPSED_HEIGHT);
+
+  // Función para activar animación después del swipe
+  const enableBalanceAnimation = useCallback(() => {
+    setTimeout(() => {
+      setShouldAnimateBalance(true);
+    }, 100);
+  }, []);
 
   // Función para cambiar de balance (desde worklet)
   const changeBalance = useCallback((newIndex: number, swipeDirection?: 'left' | 'right') => {
@@ -195,8 +226,11 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       
       setCurrentBalanceIndex(newIndex);
       addLog(`🔄 BalanceCard: Cambio a balance ${toCurrency}`);
+      
+      // Activar animación de números después del swipe
+      enableBalanceAnimation();
     }
-  }, [balances, currentBalanceIndex, addLog]);
+  }, [balances, currentBalanceIndex, addLog, enableBalanceAnimation]);
 
   // Gesture handler para swipe horizontal (solo cuando está COLLAPSED)
   const panGesture = Gesture.Pan()
@@ -229,6 +263,10 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         if (newIndex !== currentBalanceIndex) {
           const swipeDirection: 'left' | 'right' = event.translationX < 0 ? 'left' : 'right';
           const targetX = -(newIndex * SCREEN_WIDTH);
+          
+          // Desactivar animación durante el swipe
+          runOnJS(setShouldAnimateBalance)(false);
+          
           translateX.value = withSpring(targetX, {
             damping: 20,
             stiffness: 300,
@@ -364,6 +402,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
             currency={balance.currency} 
             onCollapse={handleCollapse}
             isActive={index === currentBalanceIndex}
+            shouldAnimate={shouldAnimateBalance}
           />
         </View>
 
@@ -393,19 +432,19 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.cardStackContainer, cardStackStyle]}>
-          {balances.map((balance, index) => renderCard(balance, index))}
-        </Animated.View>
-      </GestureDetector>
-      
-      {/* Indicadores de posición */}
+      {/* Indicadores de posición - Fuera del card stack para evitar overflow */}
       {balances.length > 1 && (
         <BalanceIndicators 
           total={balances.length} 
           currentIndex={currentBalanceIndex}
         />
       )}
+      
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.cardStackContainer, cardStackStyle]}>
+          {balances.map((balance, index) => renderCard(balance, index))}
+        </Animated.View>
+      </GestureDetector>
     </Animated.View>
   );
 };
@@ -426,12 +465,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
-    overflow: 'hidden',
+    overflow: 'visible', // Cambiado a visible para que los indicadores se vean
     position: 'relative',
   },
   cardStackContainer: {
     flexDirection: 'row',
     height: '100%',
+    overflow: 'hidden', // Ocultar cards fuera del área visible
   },
   cardWrapper: {
     width: SCREEN_WIDTH,
@@ -444,6 +484,14 @@ const styles = StyleSheet.create({
     marginBottom: SCREEN_HEIGHT * 0.03,
     position: 'relative',
     zIndex: 1,
+  },
+  saldoLabel: {
+    fontSize: 18,
+    fontFamily: FONTS.poppins.light,
+    color: COLORS.textSecondary,
+    marginTop: 0,
+    marginBottom: SPACING.lg,
+    alignSelf: 'center',
   },
   balanceDisplayContainer: {
     alignItems: 'center',
@@ -516,10 +564,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
-    bottom: SPACING.md,
+    top: SCREEN_HEIGHT * 0.0075 - SPACING.sm + 3, // Justo arriba de "Saldo" + 3px más abajo
     left: 0,
     right: 0,
-    zIndex: 10,
+    zIndex: 20, // Mayor zIndex para estar sobre todo
     gap: SPACING.xs,
   },
   indicator: {
