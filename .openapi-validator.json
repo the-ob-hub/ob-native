@@ -1,0 +1,22 @@
+{
+  "validator": {
+    "validateSchema": true,
+    "validateRequest": true,
+    "validateResponse": true,
+    "validateSecurity": true
+  },
+  "rules": {
+    "operation-operationId": "error",
+    "operation-summary": "error",
+    "operation-description": "warning",
+    "operation-tags": "warning",
+    "operation-parameters": "error",
+    "operation-requestBody": "warning",
+    "operation-responses": "error",
+    "operation-security": "warning",
+    "schema-required": "error",
+    "schema-properties": "error",
+    "schema-enum": "error"
+  }
+}
+

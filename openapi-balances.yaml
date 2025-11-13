@@ -1,0 +1,227 @@
+openapi: 3.0.3
+info:
+  title: OndaBank Mobile API - Balances Endpoint
+  description: |
+    API specification for retrieving user balances.
+    
+    **Important Notes:**
+    - Balances MUST be returned in this exact order: UYU, USD, USDc
+    - Amount must be a number (not string)
+    - Currency codes are case-sensitive
+  version: 1.0.0
+  contact:
+    name: Frontend Team
+    email: dev@ondabank.com
+
+servers:
+  - url: https://api.ondabank.com/api/v1
+    description: Production server
+  - url: https://staging-api.ondabank.com/api/v1
+    description: Staging server
+
+tags:
+  - name: Balances
+    description: User balance operations
+
+paths:
+  /users/{userId}/balances:
+    get:
+      tags:
+        - Balances
+      summary: Get user balances
+      description: |
+        Retrieves all balances for the authenticated user.
+        
+        **Critical Requirements:**
+        - Balances must be returned in order: UYU, USD, USDc
+        - Each currency has specific available actions
+        - Amount must be a number type
+      operationId: getUserBalances
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID (UUID format)
+          schema:
+            type: string
+            format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response with user balances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalancesResponse'
+              examples:
+                allBalances:
+                  summary: User with all three balances
+                  value:
+                    balances:
+                      - currency: UYU
+                        amount: 45000.00
+                        availableActions:
+                          - agregar
+                          - pagar
+                          - exchange
+                      - currency: USD
+                        amount: 1250.36
+                        availableActions:
+                          - agregar
+                          - enviar
+                          - exchange
+                      - currency: USDc
+                        amount: 125000.50
+                        availableActions:
+                          - agregar
+                          - enviar
+                          - exchange
+                          - pagar
+                singleBalance:
+                  summary: User with only USDc balance
+                  value:
+                    balances:
+                      - currency: USDc
+                        amount: 5000.00
+                        availableActions:
+                          - agregar
+                          - enviar
+                          - exchange
+                          - pagar
+                emptyBalances:
+                  summary: User with no balances
+                  value:
+                    balances: []
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+
+  schemas:
+    BalancesResponse:
+      type: object
+      required:
+        - balances
+      properties:
+        balances:
+          type: array
+          description: "Array of user balances (MUST be ordered: UYU, USD, USDc)"
+          items:
+            $ref: '#/components/schemas/Balance'
+          minItems: 0
+          maxItems: 3
+
+    Balance:
+      type: object
+      required:
+        - currency
+        - amount
+        - availableActions
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          type: number
+          format: double
+          description: Balance amount (must be number, not string)
+          minimum: 0
+          example: 1250.36
+        availableActions:
+          type: array
+          description: List of available actions for this currency
+          items:
+            $ref: '#/components/schemas/ActionId'
+          minItems: 1
+          maxItems: 4
+          example:
+            - agregar
+            - enviar
+            - exchange
+
+    Currency:
+      type: string
+      enum:
+        - UYU
+        - USD
+        - USDc
+      description: |
+        Currency code (case-sensitive).
+        
+        **Order requirement:** Balances must be returned in this order:
+        1. UYU (Pesos Uruguayos)
+        2. USD (Dólares)
+        3. USDc (USD Coin)
+      example: USDc
+
+    ActionId:
+      type: string
+      enum:
+        - agregar
+        - enviar
+        - exchange
+        - pagar
+      description: |
+        Available action identifier.
+        
+        **Action availability by currency:**
+        - UYU: agregar, pagar, exchange
+        - USD: agregar, enviar, exchange
+        - USDc: agregar, enviar, exchange, pagar
+      example: agregar
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "Unauthorized"
+        message:
+          type: string
+          example: "Invalid or missing authentication token"
+
+  responses:
+    UnauthorizedError:
+      description: Authentication token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Unauthorized"
+            message: "Invalid or missing authentication token"
+
+    NotFoundError:
+      description: User not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Not Found"
+            message: "User not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Internal Server Error"
+            message: "An error occurred while fetching balances"
+
