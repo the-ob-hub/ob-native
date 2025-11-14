@@ -2,11 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { OnboardingScreen } from './src/features/onboarding/ui/OnboardingScreen';
+// import { OnboardingScreen } from './src/features/onboarding/ui/OnboardingScreen'; // Deshabilitado temporalmente
+import { LoginScreen } from './src/screens/LoginScreen';
+import { SignUpScreen } from './src/screens/SignUpScreen';
+import { ConfirmSignUpScreen } from './src/screens/ConfirmSignUpScreen';
 import { MainTabs } from './src/navigation/MainTabs';
-import { COLORS } from './src/constants';
+import { COLORS, SPACING } from './src/constants';
 import { LogProvider } from './src/contexts/LogContext';
 import { BackgroundColorProvider } from './src/contexts/BackgroundColorContext';
+import { cognitoService } from './src/services/auth/cognitoService';
+import { LoginBackground } from './src/components/LoginBackground';
+import { logger } from './src/utils/logger';
 
 const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
   useEffect(() => {
@@ -19,72 +25,253 @@ const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
 
   return (
     <View style={styles.splashContainer}>
-      <Text style={styles.splashLogo}>OndaBank</Text>
-      <Text style={styles.splashTagline}>Tu banco, completamente agéntico</Text>
-      <ActivityIndicator size="large" color={COLORS.white} style={styles.loader} />
+      {/* Background SVG */}
+      <LoginBackground />
+      
+      <View style={styles.splashContent}>
+        <Text style={styles.splashLogo}>OoBk</Text>
+        <Text style={styles.splashTagline}>Existe una nueva generación de servicios Bancarios y Financieros ;)</Text>
+        <ActivityIndicator size="large" color={COLORS.white} style={styles.loader} />
+      </View>
     </View>
   );
 };
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState<'splash' | 'onboarding' | 'main'>('splash');
+  const [currentScreen, setCurrentScreen] = useState<'splash' | 'signup' | 'confirmSignup' | 'login' | 'main'>('splash');
   const [isLoading, setIsLoading] = useState(true);
+  const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpUsername, setSignUpUsername] = useState('');
 
   useEffect(() => {
-    checkOnboardingStatus();
+    checkAuthStatus();
   }, []);
 
-  const checkOnboardingStatus = async () => {
+  /**
+   * Verifica si hay una sesión activa en Cognito
+   */
+  const checkAuthStatus = async () => {
+    logger.log(`🚀 App - checkAuthStatus() - Iniciando verificación de sesión`);
     try {
-      const hasCompleted = await AsyncStorage.getItem('hasCompletedOnboarding');
-      console.log('📱 Onboarding completado:', hasCompleted);
+      logger.log(`📞 App - checkAuthStatus() - Llamando cognitoService.getCurrentSession()`);
+      const sessionResult = await cognitoService.getCurrentSession();
       
-      // Si ya completó el onboarding, skip directo a main después del splash
-      if (hasCompleted === 'true') {
+      if (sessionResult.success) {
+        logger.log(`✅ App - checkAuthStatus() - Sesión Cognito activa encontrada`);
+        logger.log(`📱 App - checkAuthStatus() - Navegando a MainTabs después del splash`);
         setIsLoading(false);
         // El splash mostrará y luego irá a main
       } else {
+        logger.log(`⚠️ App - checkAuthStatus() - No hay sesión activa`);
+        logger.log(`📱 App - checkAuthStatus() - Navegando a LoginScreen después del splash`);
         setIsLoading(false);
-        // El splash mostrará y luego irá a onboarding
+        // El splash mostrará y luego irá a login
       }
-    } catch (error) {
-      console.error('Error checking onboarding status:', error);
+    } catch (error: any) {
+      const errorMsg = `❌ App - checkAuthStatus() - Error verificando sesión: ${error.message || String(error)}`;
+      logger.error(errorMsg);
       setIsLoading(false);
+      // En caso de error, mostrar login
     }
   };
 
   const handleSplashFinish = async () => {
-    const hasCompleted = await AsyncStorage.getItem('hasCompletedOnboarding');
-    if (hasCompleted === 'true') {
+    logger.log(`🏁 App - handleSplashFinish() - Splash screen finalizado`);
+    logger.log(`🔍 App - handleSplashFinish() - Verificando sesión para navegación`);
+    const sessionResult = await cognitoService.getCurrentSession();
+    if (sessionResult.success) {
+      logger.log(`✅ App - handleSplashFinish() - Sesión válida, navegando a MainTabs`);
       setCurrentScreen('main');
     } else {
-      setCurrentScreen('onboarding');
+      logger.log(`⚠️ App - handleSplashFinish() - Sin sesión, navegando a SignUpScreen`);
+      setCurrentScreen('signup');
     }
   };
 
-  const handleOnboardingComplete = () => {
+  const handleLoginSuccess = async () => {
+    logger.log(`✅ App - handleLoginSuccess() - Login exitoso, guardando datos del usuario`);
+    
+    try {
+      // Obtener atributos del usuario de Cognito
+      const attributes = await cognitoService.getUserAttributes();
+      
+      if (attributes) {
+        logger.log(`👤 App - handleLoginSuccess() - Atributos obtenidos: ${Object.keys(attributes).join(', ')}`);
+        
+        // Usar email como ID del usuario para consistencia (igual que en registro)
+        const email = attributes.email || '';
+        const userId = email || attributes.sub || attributes['cognito:username'] || 'unknown';
+        const fullName = attributes.name || '';
+        const phone = attributes.phone_number || '';
+        const birthDate = attributes.birthdate || '';
+        
+        logger.log(`👤 App - handleLoginSuccess() - UserId: ${userId}`);
+        logger.log(`📧 App - handleLoginSuccess() - Email: ${email}`);
+        
+        // Guardar userId en AsyncStorage (usando email para consistencia)
+        await AsyncStorage.setItem('currentUserId', userId);
+        logger.log(`💾 App - handleLoginSuccess() - UserId guardado en AsyncStorage: ${userId}`);
+        
+        // Inicializar base de datos y guardar usuario
+        try {
+          const { db } = await import('./src/data/database');
+          await db.init();
+          
+          // Crear o actualizar usuario en la base de datos
+          const now = new Date().toISOString();
+          
+          // Parsear address si existe
+          let address = '';
+          if (attributes.address) {
+            try {
+              const addressArray = JSON.parse(attributes.address);
+              address = addressArray[0]?.formatted || attributes.address || '';
+            } catch (e) {
+              address = attributes.address;
+            }
+          }
+          
+          // Verificar si el usuario ya existe
+          const existingUser = await db.getUser(userId);
+          
+          if (existingUser) {
+            // Actualizar usuario existente
+            await db.updateUser(userId, {
+              email: email,
+              fullName: fullName,
+              phone: phone,
+              birthDate: birthDate,
+              address: address,
+              onboardingStatus: 'completed',
+            });
+            logger.log(`✅ App - handleLoginSuccess() - Usuario actualizado en base de datos`);
+          } else {
+            // Crear nuevo usuario
+            const userData = {
+              id: userId,
+              email: email,
+              fullName: fullName,
+              phone: phone,
+              birthDate: birthDate,
+              address: address,
+              onboardingStatus: 'completed' as const,
+              createdAt: now,
+              updatedAt: now,
+            };
+            await db.createUser(userData);
+            logger.log(`✅ App - handleLoginSuccess() - Usuario creado en base de datos`);
+          }
+        } catch (dbError: any) {
+          logger.error(`❌ App - handleLoginSuccess() - Error guardando en base de datos: ${dbError.message}`);
+          // Continuar aunque falle la base de datos
+        }
+      } else {
+        logger.log(`⚠️ App - handleLoginSuccess() - No se pudieron obtener atributos del usuario`);
+        // Usar email como userId si no hay atributos
+        const cognitoUser = cognitoService.getCurrentUser();
+        if (cognitoUser) {
+          const username = cognitoUser.getUsername();
+          await AsyncStorage.setItem('currentUserId', username);
+          logger.log(`💾 App - handleLoginSuccess() - Username guardado como userId: ${username}`);
+        }
+      }
+    } catch (error: any) {
+      logger.error(`❌ App - handleLoginSuccess() - Error guardando datos del usuario: ${error.message}`);
+      // Continuar navegando aunque falle
+    }
+    
+    logger.log(`📱 App - handleLoginSuccess() - Navegando a MainTabs`);
     setCurrentScreen('main');
   };
 
-  const handleLogout = async () => {
+  const handleSignUpSuccess = async (email: string, username: string, signUpData?: any) => {
+    logger.log(`✅ App - handleSignUpSuccess() - Registro exitoso, guardando datos del usuario`);
+    logger.log(`👤 App - handleSignUpSuccess() - Username guardado: ${username}`);
+    logger.log(`📧 App - handleSignUpSuccess() - Email: ${email}`);
+    
+    // Guardar datos del usuario en la base de datos local después del registro
     try {
+      const { db } = await import('./src/data/database');
+      await db.init();
+      
+      // Usar el email como userId (o el username si es necesario)
+      const userId = email; // Usar email como ID consistente
+      
+      const now = new Date().toISOString();
+      const userData = {
+        id: userId,
+        email: email,
+        fullName: signUpData?.fullName || '',
+        phone: signUpData?.phoneNumber || '',
+        birthDate: signUpData?.birthDate || '',
+        address: signUpData?.address || '',
+        onboardingStatus: 'completed' as const, // Completado para ir directo a home
+        createdAt: now,
+        updatedAt: now,
+      };
+      
+      // Verificar si el usuario ya existe
+      const existingUser = await db.getUser(userId);
+      if (existingUser) {
+        await db.updateUser(userId, userData);
+        logger.log(`✅ App - handleSignUpSuccess() - Usuario actualizado en base de datos`);
+      } else {
+        await db.createUser(userData);
+        logger.log(`✅ App - handleSignUpSuccess() - Usuario creado en base de datos`);
+      }
+      
+      // Guardar userId en AsyncStorage
+      await AsyncStorage.setItem('currentUserId', userId);
+      logger.log(`💾 App - handleSignUpSuccess() - UserId guardado en AsyncStorage: ${userId}`);
+    } catch (dbError: any) {
+      logger.error(`❌ App - handleSignUpSuccess() - Error guardando datos: ${dbError.message}`);
+      // Continuar aunque falle
+    }
+    
+    // Navegar directamente a la home (sin confirmación de email para desarrollo)
+    logger.log(`📱 App - handleSignUpSuccess() - Navegando directamente a MainTabs (modo desarrollo)`);
+    setCurrentScreen('main');
+  };
+
+  const handleConfirmSignUpSuccess = () => {
+    logger.log(`✅ App - handleConfirmSignUpSuccess() - Verificación exitosa, navegando a LoginScreen`);
+    setCurrentScreen('login');
+  };
+
+  // Función deshabilitada - OnboardingScreen comentado temporalmente
+  // const handleOnboardingComplete = () => {
+  //   setCurrentScreen('main');
+  // };
+
+  const handleLogout = async () => {
+    logger.log(`🚪 App - handleLogout() - Iniciando proceso de logout`);
+    try {
+      // Cerrar sesión en Cognito
+      logger.log(`🔐 App - handleLogout() - Cerrando sesión en Cognito`);
+      await cognitoService.signOut();
+      
       // Limpiar AsyncStorage
+      logger.log(`🗑️ App - handleLogout() - Limpiando AsyncStorage`);
       await AsyncStorage.removeItem('hasCompletedOnboarding');
       await AsyncStorage.removeItem('currentUserId');
       
       // Limpiar base de datos SQLite
+      logger.log(`🗄️ App - handleLogout() - Limpiando base de datos SQLite`);
       const { db } = await import('./src/data/database');
       await db.init();
       await db.clearAllData();
       
-      console.log('✅ Logout completado - Datos limpiados');
+      logger.log(`✅ App - handleLogout() - Logout completado exitosamente`);
+      logger.log(`📱 App - handleLogout() - Navegando a LoginScreen`);
       
-      // Volver al onboarding
-      setCurrentScreen('onboarding');
-    } catch (error) {
-      console.error('❌ Error en logout:', error);
-      // Aún así, intentar volver al onboarding
-      setCurrentScreen('onboarding');
+      // Volver al registro (primera pantalla)
+      setCurrentScreen('signup');
+    } catch (error: any) {
+      const errorMsg = `❌ App - handleLogout() - Error en logout: ${error.message || String(error)}`;
+      logger.error(errorMsg);
+      // Aún así, intentar volver al registro
+      logger.log(`📱 App - handleLogout() - Navegando a SignUpScreen (a pesar del error)`);
+      setCurrentScreen('signup');
     }
   };
 
@@ -96,12 +283,60 @@ function App() {
     );
   }
 
-  if (currentScreen === 'onboarding') {
+  // OnboardingScreen deshabilitado temporalmente - reemplazado por LoginScreen
+  // if (currentScreen === 'onboarding') {
+  //   return (
+  //     <GestureHandlerRootView style={{ flex: 1 }}>
+  //       <LogProvider>
+  //         <BackgroundColorProvider>
+  //           <OnboardingScreen onComplete={handleOnboardingComplete} />
+  //         </BackgroundColorProvider>
+  //       </LogProvider>
+  //     </GestureHandlerRootView>
+  //   );
+  // }
+
+  if (currentScreen === 'signup') {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <LogProvider>
           <BackgroundColorProvider>
-            <OnboardingScreen onComplete={handleOnboardingComplete} />
+            <SignUpScreen
+              onBack={() => setCurrentScreen('login')}
+              onSignUpSuccess={handleSignUpSuccess}
+            />
+          </BackgroundColorProvider>
+        </LogProvider>
+      </GestureHandlerRootView>
+    );
+  }
+
+  if (currentScreen === 'confirmSignup') {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <LogProvider>
+          <BackgroundColorProvider>
+          <ConfirmSignUpScreen
+            email={signUpEmail}
+            username={signUpUsername}
+            onBack={() => setCurrentScreen('signup')}
+            onConfirmSuccess={handleConfirmSignUpSuccess}
+          />
+          </BackgroundColorProvider>
+        </LogProvider>
+      </GestureHandlerRootView>
+    );
+  }
+
+  if (currentScreen === 'login') {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <LogProvider>
+          <BackgroundColorProvider>
+            <LoginScreen
+              onLoginSuccess={handleLoginSuccess}
+              onShowSignUp={() => setCurrentScreen('signup')}
+            />
           </BackgroundColorProvider>
         </LogProvider>
       </GestureHandlerRootView>
@@ -122,9 +357,13 @@ function App() {
 const styles = StyleSheet.create({
   splashContainer: {
     flex: 1,
+    backgroundColor: '#000000', // Fondo negro base
+  },
+  splashContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
+    zIndex: 1, // Asegurar que el contenido esté sobre el fondo
   },
   splashLogo: {
     fontSize: 48,
@@ -133,9 +372,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   splashTagline: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.white,
     opacity: 0.9,
+    textAlign: 'center',
+    paddingHorizontal: SPACING.md,
   },
   loader: {
     marginTop: 48,

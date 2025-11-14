@@ -13,6 +13,7 @@ import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../constants';
 import { BalanceActions } from './BalanceActions';
 import { BalanceBackground } from './BalanceBackground';
+import { TransferContent } from './TransferContent';
 import { useLogs } from '../contexts/LogContext';
 import { Balance, ActionId } from '../models';
 import { trackingService } from '../services/analytics/trackingService';
@@ -418,13 +419,27 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
         {/* Expandable Area */}
         <View style={styles.expandableArea}>
-          <Text style={styles.expandableContent}>
-            {currentState === BalanceCardState.COLLAPSED && 'Colapsado'}
-            {currentState === BalanceCardState.EXPANDED_LOW && 'Exchange'}
-            {currentState === BalanceCardState.EXPANDED_MEDIUM && 
-              (selectedAction === 'agregar' ? 'Agregar' : 'Pagar')}
-            {currentState === BalanceCardState.EXPANDED_HIGH && 'Enviar'}
-          </Text>
+          {currentState === BalanceCardState.COLLAPSED && (
+            <Text style={styles.expandableContent}>Colapsado</Text>
+          )}
+          {currentState === BalanceCardState.EXPANDED_LOW && (
+            <Text style={styles.expandableContent}>Exchange</Text>
+          )}
+          {currentState === BalanceCardState.EXPANDED_MEDIUM && (
+            <Text style={styles.expandableContent}>
+              {selectedAction === 'agregar' ? 'Agregar' : 'Pagar'}
+            </Text>
+          )}
+          {currentState === BalanceCardState.EXPANDED_HIGH && selectedAction === 'enviar' && (
+            <TransferContent
+              currency={balance.currency}
+              onContactSelect={(contact) => {
+                addLog(`✅ BalanceCard - Contacto seleccionado para transferencia: ${contact.fullName}`);
+                // TODO: Navegar a pantalla de confirmación de transferencia
+                // Por ahora solo logueamos
+              }}
+            />
+          )}
         </View>
       </Animated.View>
     );
@@ -548,9 +563,7 @@ const styles = StyleSheet.create({
   },
   expandableArea: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: SPACING.lg,
+    paddingVertical: SPACING.md,
     position: 'relative',
     zIndex: 1,
   },

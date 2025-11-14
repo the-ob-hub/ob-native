@@ -89,3 +89,6 @@ export interface BalancesResponse {
   balances: Balance[];
 }
 
+// Re-export contact models
+export * from './contacts';
+

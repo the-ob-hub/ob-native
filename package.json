@@ -1,6 +1,6 @@
 {
   "name": "obnative",
-  "version": "1.67.0",
+  "version": "1.73.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -15,6 +15,7 @@
     "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-navigation/native": "^7.1.19",
     "@react-navigation/native-stack": "^7.6.2",
+    "amazon-cognito-identity-js": "^6.3.16",
     "lottie-react-native": "^7.3.4",
     "react": "18.3.1",
     "react-native": "0.75.4",

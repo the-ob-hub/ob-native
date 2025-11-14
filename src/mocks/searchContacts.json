@@ -1,0 +1,65 @@
+{
+  "success": true,
+  "results": {
+    "contacts": [
+      {
+        "contactId": "user_123",
+        "fullName": "Juan M. Alvarez",
+        "alias": "juan.alvarez",
+        "phone": "+59812345678",
+        "cvu": "0288818238126387137691",
+        "avatar": null,
+        "hasDolarApp": true,
+        "isSaved": false,
+        "hasPreviousTransaction": true,
+        "lastTransactionDate": "2024-01-15T10:30:00Z"
+      },
+      {
+        "contactId": "user_456",
+        "fullName": "María Virginia Burgos",
+        "alias": "maria.burgos",
+        "phone": "+59898765432",
+        "cvu": "0288818238126387137692",
+        "avatar": null,
+        "hasDolarApp": true,
+        "isSaved": true,
+        "hasPreviousTransaction": true,
+        "lastTransactionDate": "2024-01-18T14:20:00Z"
+      }
+    ],
+    "users": [
+      {
+        "contactId": "user_999",
+        "fullName": "Laura Sánchez",
+        "alias": "laura.sanchez",
+        "phone": "+59866778899",
+        "cvu": "0288818238126387137799",
+        "avatar": null,
+        "hasDolarApp": true,
+        "isSaved": false,
+        "hasPreviousTransaction": false
+      },
+      {
+        "contactId": "user_888",
+        "fullName": "Pedro Ramírez",
+        "alias": "pedro.ramirez",
+        "phone": "+59877889900",
+        "cvu": "0288818238126387137788",
+        "avatar": null,
+        "hasDolarApp": true,
+        "isSaved": false,
+        "hasPreviousTransaction": false
+      }
+    ],
+    "external": [
+      {
+        "cvu": "0288818238126387137888",
+        "fullName": "Carlos Pérez",
+        "hasDolarApp": false,
+        "hasPreviousTransaction": true,
+        "lastTransactionDate": "2024-01-10T14:20:00Z"
+      }
+    ]
+  }
+}
+

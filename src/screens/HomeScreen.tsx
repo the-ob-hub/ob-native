@@ -92,20 +92,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
     try {
       setIsLoading(true);
 
+      // Inicializar la base de datos si no está inicializada
+      try {
+        await db.init();
+        console.log('✅ Base de datos inicializada');
+      } catch (dbError) {
+        console.log('⚠️ Error inicializando base de datos, continuando con datos mock:', dbError);
+      }
+
       // Obtener userId de AsyncStorage
       const userId = await AsyncStorage.getItem('currentUserId');
       
       if (userId) {
         console.log('📱 Cargando datos del usuario:', userId);
         
-        // Obtener datos del usuario desde la base de datos
-        const userData = await db.getUser(userId);
-        
-        if (userData) {
-          console.log('✅ Datos del usuario cargados:', userData);
-          setCurrentUser(userData);
-        } else {
-          console.log('⚠️ No se encontró el usuario, usando datos mock');
+        try {
+          // Obtener datos del usuario desde la base de datos
+          const userData = await db.getUser(userId);
+          
+          if (userData) {
+            console.log('✅ Datos del usuario cargados:', userData);
+            setCurrentUser(userData);
+          } else {
+            console.log('⚠️ No se encontró el usuario, usando datos mock');
+            setCurrentUser(getMockUser());
+          }
+        } catch (dbError) {
+          console.log('⚠️ Error obteniendo usuario de la base de datos, usando datos mock:', dbError);
           setCurrentUser(getMockUser());
         }
       } else {

@@ -1,0 +1,138 @@
+{
+  "success": true,
+  "contacts": [
+    {
+      "contactId": "user_123",
+      "fullName": "Juan M. Alvarez",
+      "alias": "juan.alvarez",
+      "phone": "+59812345678",
+      "cvu": "0288818238126387137691",
+      "avatar": null,
+      "hasDolarApp": true,
+      "isSaved": false,
+      "lastTransactionDate": "2024-01-15T10:30:00Z",
+      "transactionCount": 15
+    },
+    {
+      "contactId": "user_456",
+      "fullName": "María Virginia Burgos",
+      "alias": "maria.burgos",
+      "phone": "+59898765432",
+      "cvu": "0288818238126387137692",
+      "avatar": null,
+      "hasDolarApp": true,
+      "isSaved": true,
+      "lastTransactionDate": "2024-01-18T14:20:00Z",
+      "transactionCount": 12
+    },
+    {
+      "contactId": "user_789",
+      "fullName": "Carlos Antonio Denevi",
+      "alias": "carlos.denevi",
+      "phone": "+59811223344",
+      "cvu": "0288818238126387137693",
+      "avatar": null,
+      "hasDolarApp": true,
+      "isSaved": false,
+      "lastTransactionDate": "2024-01-10T16:45:00Z",
+      "transactionCount": 8
+    },
+    {
+      "contactId": "user_321",
+      "fullName": "Graciela Bonalve",
+      "alias": "graciela.b",
+      "phone": "+59855667788",
+      "cvu": "0288818238126387137694",
+      "avatar": null,
+      "hasDolarApp": true,
+      "isSaved": true,
+      "lastTransactionDate": "2024-01-12T11:30:00Z",
+      "transactionCount": 6
+    },
+    {
+      "contactId": "user_654",
+      "fullName": "Veronica Denevi",
+      "alias": "vero.denevi",
+      "phone": "+59899887766",
+      "cvu": "0288818238126387137695",
+      "avatar": null,
+      "hasDolarApp": true,
+      "isSaved": false,
+      "lastTransactionDate": "2024-01-08T09:15:00Z",
+      "transactionCount": 5
+    },
+    {
+      "cvu": "0288818238126387137696",
+      "fullName": "Roberto Silva",
+      "hasDolarApp": false,
+      "isSaved": false,
+      "lastTransactionDate": "2024-01-05T13:20:00Z",
+      "transactionCount": 4
+    },
+    {
+      "contactId": "user_987",
+      "fullName": "Ana Martínez",
+      "alias": "ana.martinez",
+      "phone": "+59844332211",
+      "cvu": "0288818238126387137697",
+      "avatar": null,
+      "hasDolarApp": true,
+      "isSaved": false,
+      "lastTransactionDate": "2024-01-03T17:00:00Z",
+      "transactionCount": 3
+    },
+    {
+      "contactId": "user_147",
+      "fullName": "Luis Fernández",
+      "alias": "luis.fernandez",
+      "phone": "+59833221144",
+      "cvu": "0288818238126387137698",
+      "avatar": null,
+      "hasDolarApp": true,
+      "isSaved": true,
+      "lastTransactionDate": "2024-01-01T10:00:00Z",
+      "transactionCount": 2
+    },
+    {
+      "cvu": "0288818238126387137699",
+      "fullName": "Patricia Gómez",
+      "hasDolarApp": false,
+      "isSaved": false,
+      "lastTransactionDate": "2023-12-27T11:30:00Z",
+      "transactionCount": 2
+    },
+    {
+      "contactId": "user_258",
+      "fullName": "Diego Rodríguez",
+      "alias": "diego.rodriguez",
+      "phone": "+59822114433",
+      "cvu": "0288818238126387137700",
+      "avatar": null,
+      "hasDolarApp": true,
+      "isSaved": false,
+      "lastTransactionDate": "2023-12-24T15:45:00Z",
+      "transactionCount": 1
+    },
+    {
+      "contactId": "user_369",
+      "fullName": "Sofía López",
+      "alias": "sofia.lopez",
+      "phone": "+59855443322",
+      "cvu": "0288818238126387137701",
+      "avatar": null,
+      "hasDolarApp": true,
+      "isSaved": true,
+      "lastTransactionDate": "2023-12-20T08:00:00Z",
+      "transactionCount": 1
+    },
+    {
+      "cvu": "0288818238126387137702",
+      "fullName": "Miguel Torres",
+      "hasDolarApp": false,
+      "isSaved": false,
+      "lastTransactionDate": "2023-12-15T14:30:00Z",
+      "transactionCount": 1
+    }
+  ]
+}
+
