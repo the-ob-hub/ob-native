@@ -1,5 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  withSequence,
+  withDelay,
+  interpolate,
+  Extrapolation,
+  Easing,
+} from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { COLORS, SPACING, FONTS } from '../constants';
 import { BalanceCardState } from './BalanceCard';
@@ -12,6 +23,8 @@ interface BalanceActionsProps {
   onActionPress: (state: BalanceCardState, actionId: string) => void;
   availableActions?: ActionId[];
   currentBalance?: Balance;
+  isExpanded?: boolean; // Control para animación de ocultar/mostrar
+  animationDelay?: number; // Delay para animación secuencial (después de expandir/colapsar)
 }
 
 // Iconos de acción basados en el diseño del menú
@@ -104,7 +117,7 @@ const actions = [
     id: 'enviar',
     label: 'Enviar',
     icon: EnviarIcon,
-    state: BalanceCardState.EXPANDED_HIGH,
+    state: BalanceCardState.EXPANDED_XXL,
   },
   {
     id: 'exchange',
@@ -125,8 +138,144 @@ export const BalanceActions: React.FC<BalanceActionsProps> = ({
   onActionPress,
   availableActions = ['agregar', 'enviar', 'exchange', 'pagar'], // Default: todas disponibles
   currentBalance,
+  isExpanded = false,
+  animationDelay = 0, // Delay para secuencia
 }) => {
   const { addLog } = useLogs();
+  
+  // Shared values para animación
+  const opacity = useSharedValue(1);
+  const translateY = useSharedValue(0);
+  const blur = useSharedValue(0);
+  // Progress controlado con curva suave tipo Lottie para blur más fluido
+  const blurProgress = useSharedValue(0);
+  
+  // Sincronizar animación con isExpanded (con delay para secuencia)
+  React.useEffect(() => {
+    if (isExpanded) {
+      // Ocultar: translateY hacia arriba, blur aumenta con Lottie, opacity baja a 0
+      // Primero esperamos el delay (para que termine la expansión)
+      // Animación más suave y profesional usando Lottie
+      translateY.value = withDelay(
+        animationDelay,
+        withSpring(-60, { 
+          damping: 18, 
+          stiffness: 280,
+          mass: 0.9,
+        })
+      );
+      // Blur con curva suave tipo Lottie (ease-in-out cubic) para animación más fluida
+      blurProgress.value = withDelay(
+        animationDelay,
+        withTiming(1, { 
+          duration: 450,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1), // Curva suave tipo Lottie
+        })
+      );
+      blur.value = withDelay(
+        animationDelay,
+        withTiming(10, { 
+          duration: 450,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+        })
+      );
+      opacity.value = withDelay(
+        animationDelay,
+        withTiming(0, { 
+          duration: 450,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+        })
+      );
+    } else {
+      // Mostrar: los botones empiezan desde arriba (translateY: -60) y bajan
+      // Primero aparecen con opacity 0 y blur, luego se posicionan y desaparece blur
+      
+      // Resetear a posición inicial (arriba) antes de animar
+      translateY.value = -60;
+      blur.value = 10;
+      opacity.value = 0;
+      blurProgress.value = 1;
+      
+      // Luego animar después del delay - animación más suave y profesional
+      opacity.value = withDelay(
+        animationDelay,
+        withTiming(1, { 
+          duration: 350,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+        })
+      );
+      translateY.value = withDelay(
+        animationDelay,
+        withSpring(0, { damping: 18, stiffness: 280, mass: 0.9 })
+      );
+      // Blur desaparece gradualmente con curva suave mientras los botones bajan
+      blurProgress.value = withDelay(
+        animationDelay,
+        withTiming(0, { 
+          duration: 350,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+        })
+      );
+      blur.value = withDelay(
+        animationDelay,
+        withTiming(0, { 
+          duration: 350,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+        })
+      );
+    }
+  }, [isExpanded, animationDelay]);
+  
+  // Estilo animado
+  const animatedStyle = useAnimatedStyle(() => {
+    // Simulamos blur con un overlay semitransparente
+    const blurOpacity = interpolate(
+      blur.value,
+      [0, 10],
+      [0, 0.6],
+      Extrapolation.CLAMP
+    );
+    
+    return {
+      opacity: opacity.value,
+      transform: [
+        { translateY: translateY.value },
+      ],
+    };
+  });
+  
+  // Overlay para blur con animación suave tipo Lottie - se mueve en Y junto con los botones
+  const blurOverlayStyle = useAnimatedStyle(() => {
+    // Usar blurProgress con curva suave para controlar el blur de manera más fluida
+    const blurOpacity = interpolate(
+      blurProgress.value,
+      [0, 1],
+      [0, 0.8],
+      Extrapolation.CLAMP
+    );
+    
+    // El blur se mueve en Y junto con los botones para crear efecto más profesional
+    const blurTranslateY = interpolate(
+      translateY.value,
+      [0, -60],
+      [0, -30], // El blur se mueve menos que los botones para crear profundidad
+      Extrapolation.CLAMP
+    );
+    
+    return {
+      opacity: blurOpacity,
+      backgroundColor: COLORS.white,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: 22,
+      transform: [
+        { translateY: blurTranslateY },
+      ],
+    };
+  });
 
   const handleActionPress = (state: BalanceCardState, actionId: string) => {
     const action = actions.find(a => a.id === actionId);
@@ -151,7 +300,10 @@ export const BalanceActions: React.FC<BalanceActionsProps> = ({
   );
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, animatedStyle]}>
+      {/* Overlay para blur con animación suave tipo Lottie */}
+      <Animated.View style={blurOverlayStyle} pointerEvents="none" />
+      
       {filteredActions.map((action) => {
         const IconComponent = action.icon;
         const isActive = currentState === action.state;
@@ -175,7 +327,7 @@ export const BalanceActions: React.FC<BalanceActionsProps> = ({
           </TouchableOpacity>
         );
       })}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -186,6 +338,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
     marginBottom: SPACING.md,
+    position: 'relative',
+    overflow: 'visible',
   },
   actionButton: {
     flex: 1,

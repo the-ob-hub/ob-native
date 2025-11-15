@@ -1,6 +1,6 @@
 {
   "name": "obnative",
-  "version": "1.73.0",
+  "version": "3.02.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",

@@ -92,11 +92,11 @@ class ContactsService {
     const { query } = params;
     const queryLower = query.toLowerCase();
     
-    // Filtrar resultados mock basado en la búsqueda
-    const mockResponse = searchContactsMock as SearchContactsResponse;
+    // Buscar en todos los contactos disponibles (allContactsMock) en lugar de solo searchContactsMock
+    const allContactsData = allContactsMock as AllContactsResponse;
     
     // Filtrar contactos que coincidan con la búsqueda
-    const filteredContacts = mockResponse.results.contacts.filter(contact => {
+    const filteredContacts = allContactsData.contacts.filter(contact => {
       return (
         contact.fullName.toLowerCase().includes(queryLower) ||
         contact.alias?.toLowerCase().includes(queryLower) ||
@@ -105,31 +105,41 @@ class ContactsService {
       );
     });
     
-    const filteredUsers = mockResponse.results.users.filter(user => {
-      return (
-        user.fullName.toLowerCase().includes(queryLower) ||
-        user.alias?.toLowerCase().includes(queryLower) ||
-        user.phone?.includes(query) ||
-        user.cvu?.includes(query)
-      );
-    });
+    // Separar en contactos con historial y usuarios sin historial
+    // Un contacto tiene historial si tiene lastTransactionDate o transactionCount > 0
+    const contactsWithHistory = filteredContacts.filter(c => 
+      (c.metadata?.lastTransactionDate || c.lastTransactionDate) ||
+      (c.metadata?.transactionCount || c.transactionCount || 0) > 0
+    );
     
-    const filteredExternal = mockResponse.results.external.filter(external => {
-      return (
-        external.fullName?.toLowerCase().includes(queryLower) ||
-        external.cvu.includes(query)
-      );
-    });
+    // Usuarios sin historial: tienen contactId pero no tienen transacciones
+    const usersWithoutHistory = filteredContacts.filter(c => 
+      c.contactId && 
+      !c.metadata?.lastTransactionDate && 
+      !c.lastTransactionDate &&
+      (c.metadata?.transactionCount || c.transactionCount || 0) === 0
+    );
     
-    const totalResults = filteredContacts.length + filteredUsers.length + filteredExternal.length;
-    logger.log(`✅ ContactsService.searchContacts() - Resultados: ${totalResults} (${filteredContacts.length} contactos, ${filteredUsers.length} usuarios, ${filteredExternal.length} externos)`);
+    // Contactos externos (sin contactId pero con CVU)
+    const external = filteredContacts.filter(c => 
+      !c.contactId && c.cvu
+    );
+    
+    const totalResults = contactsWithHistory.length + usersWithoutHistory.length + external.length;
+    logger.log(`✅ ContactsService.searchContacts() - Resultados: ${totalResults} (${contactsWithHistory.length} contactos, ${usersWithoutHistory.length} usuarios, ${external.length} externos)`);
     
     return {
       success: true,
       results: {
-        contacts: filteredContacts,
-        users: filteredUsers,
-        external: filteredExternal,
+        contacts: contactsWithHistory,
+        users: usersWithoutHistory,
+        external: external.map(ext => ({
+          cvu: ext.cvu || '',
+          fullName: ext.fullName,
+          hasDolarApp: false,
+          hasPreviousTransaction: !!ext.lastTransactionDate,
+          lastTransactionDate: ext.metadata?.lastTransactionDate || ext.lastTransactionDate,
+        })),
       },
     };
   }

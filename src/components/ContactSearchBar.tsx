@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../constants';
@@ -45,30 +45,7 @@ export const ContactSearchBar: React.FC<ContactSearchBarProps> = ({
   placeholder = 'Alias, nombre, celular, CVU',
 }) => {
   const [query, setQuery] = useState('');
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const { addLog } = useLogs();
-
-  useEffect(() => {
-    // Limpiar timer anterior
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
-
-    // Crear nuevo timer con debounce de 300ms
-    debounceTimer.current = setTimeout(() => {
-      if (query.trim()) {
-        addLog(`🔍 ContactSearchBar - Búsqueda iniciada: "${query}"`);
-      }
-      onSearchChange(query);
-    }, 300);
-
-    // Cleanup
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
-  }, [query, onSearchChange]);
 
   const handleClear = () => {
     addLog('🧹 ContactSearchBar - Limpiando búsqueda');
@@ -87,7 +64,11 @@ export const ContactSearchBar: React.FC<ContactSearchBarProps> = ({
           placeholder={placeholder}
           placeholderTextColor={COLORS.textSecondary}
           value={query}
-          onChangeText={setQuery}
+          onChangeText={(text) => {
+            setQuery(text);
+            // Llamar inmediatamente sin debounce para búsqueda en tiempo real
+            onSearchChange(text);
+          }}
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -104,17 +85,18 @@ export const ContactSearchBar: React.FC<ContactSearchBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: SPACING.lg,
-    paddingHorizontal: SPACING.lg,
+    width: '100%',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 2,
+    borderColor: COLORS.white,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingVertical: Math.round(SPACING.sm * 1.46), // 46% más alto (10% + 10% + 10% + 10% adicional)
+    width: '100%',
   },
   iconContainer: {
     marginRight: SPACING.sm,

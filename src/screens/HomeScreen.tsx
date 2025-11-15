@@ -20,9 +20,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const [isProfileVisible, setIsProfileVisible] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [balances, setBalances] = useState<Balance[]>([]);
+  const [isBalanceExpanded, setIsBalanceExpanded] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const avatarRef = useRef<View | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const { setShowColorPicker, setAvatarPosition } = useBackgroundColor();
 
   // Mock balances - TODO: Reemplazar con llamada al backend
@@ -199,20 +201,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
               </View>
             </View>
             <ScrollView 
+              ref={scrollViewRef}
               style={styles.scrollView}
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               contentInsetAdjustmentBehavior="automatic"
-              bounces={true}
-              alwaysBounceVertical={true}
+              bounces={!isBalanceExpanded}
+              scrollEnabled={!isBalanceExpanded}
+              alwaysBounceVertical={!isBalanceExpanded}
               contentInset={{ top: 0, bottom: 0 }}
               contentOffset={{ x: 0, y: 0 }}
             >
               <View style={styles.headerSpacer} />
-              <BalanceCard balances={balances.length > 0 ? balances : getMockBalances()} />
-              <View style={styles.emptyCard}>
-                <Text style={styles.cardTitle}>Movimientos Unificados</Text>
-              </View>
+              <BalanceCard 
+                balances={balances.length > 0 ? balances : getMockBalances()} 
+                onExpandedChange={setIsBalanceExpanded}
+              />
+              {!isBalanceExpanded && (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.cardTitle}>Movimientos Unificados</Text>
+                </View>
+              )}
             </ScrollView>
           </Animated.View>
 

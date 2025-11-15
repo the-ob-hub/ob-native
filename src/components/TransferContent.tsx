@@ -4,6 +4,7 @@ import { COLORS, SPACING } from '../constants';
 import { RecurrentContactsScroll } from './RecurrentContactsScroll';
 import { ContactSearchBar } from './ContactSearchBar';
 import { ContactList } from './ContactList';
+import { AddContactSheet } from './AddContactSheet';
 import { contactsService } from '../services/api/contactsService';
 import { UserContact } from '../models/contacts';
 import { Currency } from '../models';
@@ -24,6 +25,7 @@ export const TransferContent: React.FC<TransferContentProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [isAddContactSheetVisible, setIsAddContactSheetVisible] = useState(false);
   const { addLog } = useLogs();
 
   // Cargar contactos recurrentes
@@ -52,13 +54,8 @@ export const TransferContent: React.FC<TransferContentProps> = ({
         addLog('📞 TransferContent - Cargando todos los contactos');
         const response = await contactsService.getAllContacts({ currency });
         if (response.success) {
-          // Ordenar: primero con Dolar App, luego por fecha de última transacción
+          // Ordenar por fecha de última transacción (más reciente primero)
           const sorted = [...response.contacts].sort((a, b) => {
-            // Prioridad a contactos con Dolar App
-            if (a.hasDolarApp && !b.hasDolarApp) return -1;
-            if (!a.hasDolarApp && b.hasDolarApp) return 1;
-            
-            // Luego por fecha de última transacción (más reciente primero)
             const dateA = a.metadata?.lastTransactionDate || a.lastTransactionDate || '';
             const dateB = b.metadata?.lastTransactionDate || b.lastTransactionDate || '';
             if (dateA && dateB) {
@@ -113,7 +110,6 @@ export const TransferContent: React.FC<TransferContentProps> = ({
           ...response.results.external.map(ext => ({
             cvu: ext.cvu,
             fullName: ext.fullName || 'Usuario externo',
-            hasDolarApp: false,
             isSaved: false,
             metadata: {
               hasPreviousTransaction: ext.hasPreviousTransaction,
@@ -134,8 +130,42 @@ export const TransferContent: React.FC<TransferContentProps> = ({
   }, [currency, allContacts, addLog]);
 
   const handleContactPress = (contact: UserContact) => {
-    addLog(`👆 TransferContent - Contacto seleccionado: ${contact.fullName}`);
+    addLog(`👆 TransferContent - Contacto seleccionado: ${contact.fullName} (ID: ${contact.contactId || 'N/A'}, CVU: ${contact.cvu || 'N/A'}, Alias: ${contact.alias || 'N/A'})`);
     onContactSelect(contact);
+  };
+
+  const handleAddContact = async (contactData: {
+    cvu?: string;
+    alias?: string;
+    fullName?: string;
+    phone?: string;
+  }) => {
+    try {
+      addLog(`➕ TransferContent - Agregando nuevo contacto: ${contactData.fullName || 'Sin nombre'}`);
+      
+      // Crear el nuevo contacto
+      const newContact: UserContact = {
+        cvu: contactData.cvu,
+        alias: contactData.alias,
+        fullName: contactData.fullName || 'Nuevo contacto',
+        phone: contactData.phone,
+        isSaved: true,
+      };
+
+      // Agregar a la lista de contactos
+      const updatedContacts = [newContact, ...allContacts];
+      setAllContacts(updatedContacts);
+      setFilteredContacts(updatedContacts);
+      
+      // También agregar a contactos recientes si hay espacio
+      if (recentContacts.length < 10) {
+        setRecentContacts([newContact, ...recentContacts]);
+      }
+
+      addLog(`✅ TransferContent - Contacto agregado exitosamente`);
+    } catch (error: any) {
+      addLog(`❌ TransferContent - Error agregando contacto: ${error.message}`);
+    }
   };
 
   if (isLoading) {
@@ -167,8 +197,17 @@ export const TransferContent: React.FC<TransferContentProps> = ({
           contacts={filteredContacts}
           onContactPress={handleContactPress}
           emptyMessage={searchQuery ? 'No se encontraron resultados' : 'No hay contactos disponibles'}
+          onAddContactPress={() => setIsAddContactSheetVisible(true)}
+          showAddButton={searchQuery.trim().length > 0 && filteredContacts.length === 0}
         />
       )}
+
+      {/* Modal para agregar contacto */}
+      <AddContactSheet
+        visible={isAddContactSheetVisible}
+        onClose={() => setIsAddContactSheetVisible(false)}
+        onAddContact={handleAddContact}
+      />
     </View>
   );
 };
@@ -178,7 +217,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loadingContainer: {
-    flex: 1,
+    minHeight: 200,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: SPACING.xl,

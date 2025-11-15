@@ -40,10 +40,10 @@ export const RecurrentContactsScroll: React.FC<RecurrentContactsScrollProps> = (
           <View key={contact.contactId || contact.cvu || index} style={styles.contactItem}>
             <ContactAvatar
               contact={contact}
-              size={60}
-              showBadge={true}
+              size={85}
+              showBorder={true}
               onPress={() => {
-                addLog(`👆 RecurrentContactsScroll - Contacto presionado: ${contact.fullName}`);
+                addLog(`👆 RecurrentContactsScroll - Contacto presionado: ${contact.fullName} (ID: ${contact.contactId || 'N/A'}, CVU: ${contact.cvu || 'N/A'}, Alias: ${contact.alias || 'N/A'})`);
                 onContactPress(contact);
               }}
             />
@@ -59,22 +59,23 @@ export const RecurrentContactsScroll: React.FC<RecurrentContactsScrollProps> = (
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: SPACING.sm, // Reducir espacio superior para estar más cerca del saldo
     marginBottom: SPACING.lg,
   },
   title: {
     fontSize: 14,
-    fontFamily: FONTS.inter.semiBold,
+    fontFamily: FONTS.inter.bold,
     color: COLORS.white,
     marginBottom: SPACING.md,
     paddingHorizontal: SPACING.lg,
   },
   scrollContent: {
     paddingHorizontal: SPACING.lg,
-    gap: SPACING.md,
   },
   contactItem: {
     alignItems: 'center',
-    width: 70,
+    marginRight: SPACING.lg,
+    minWidth: 85,
   },
   contactName: {
     fontSize: 12,

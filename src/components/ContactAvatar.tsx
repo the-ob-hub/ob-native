@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { COLORS, FONTS } from '../constants';
 import { UserContact } from '../models/contacts';
 import { useLogs } from '../contexts/LogContext';
@@ -7,8 +7,9 @@ import { useLogs } from '../contexts/LogContext';
 interface ContactAvatarProps {
   contact: UserContact;
   size?: number;
-  showBadge?: boolean; // Badge de "Dolar App"
+  showBadge?: boolean;
   onPress?: () => void;
+  showBorder?: boolean; // Borde blanco para contactos horizontales
 }
 
 export const ContactAvatar: React.FC<ContactAvatarProps> = ({
@@ -16,6 +17,7 @@ export const ContactAvatar: React.FC<ContactAvatarProps> = ({
   size = 50,
   showBadge = false,
   onPress,
+  showBorder = false,
 }) => {
   const { addLog } = useLogs();
 
@@ -43,7 +45,7 @@ export const ContactAvatar: React.FC<ContactAvatarProps> = ({
 
   const handlePress = () => {
     if (onPress) {
-      addLog(`👆 ContactAvatar - Avatar presionado: ${contact.fullName}`);
+      addLog(`👆 ContactAvatar - Avatar presionado: ${contact.fullName} (ID: ${contact.contactId || 'N/A'}, CVU: ${contact.cvu || 'N/A'}, Alias: ${contact.alias || 'N/A'})`);
       onPress();
     }
   };
@@ -54,19 +56,27 @@ export const ContactAvatar: React.FC<ContactAvatarProps> = ({
       activeOpacity={0.7}
       style={[styles.container, { width: size, height: size }]}
     >
-      <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: getColor() }]}>
+      <View style={[
+        styles.avatar, 
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: getColor() },
+        showBorder && { borderWidth: 2, borderColor: COLORS.white }
+      ]}>
         {contact.avatar ? (
-          // TODO: Implementar imagen cuando esté disponible
-          <Text style={[styles.initials, { fontSize: size * 0.4 }]}>{getInitials()}</Text>
-        ) : (
+          <Image
+            source={{ uri: contact.avatar }}
+            style={[
+              styles.avatarImage,
+              { width: size, height: size, borderRadius: size / 2 }
+            ]}
+            resizeMode="cover"
+            defaultSource={undefined}
+          />
+        ) : null}
+        {/* Mostrar iniciales siempre (como fallback si no hay imagen o falla) */}
+        {!contact.avatar && (
           <Text style={[styles.initials, { fontSize: size * 0.4 }]}>{getInitials()}</Text>
         )}
       </View>
-      {showBadge && contact.hasDolarApp && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>DA</Text>
-        </View>
-      )}
     </Component>
   );
 };
@@ -83,24 +93,11 @@ const styles = StyleSheet.create({
   initials: {
     fontWeight: '600',
     color: '#FFFFFF',
-    fontFamily: FONTS.inter.semiBold,
-  },
-  badge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: COLORS.primary,
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderWidth: 2,
-    borderColor: '#000000',
-  },
-  badgeText: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
     fontFamily: FONTS.inter.bold,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -26,10 +26,12 @@ export enum BalanceCardState {
   EXPANDED_LOW = 'expanded_low',
   EXPANDED_MEDIUM = 'expanded_medium',
   EXPANDED_HIGH = 'expanded_high',
+  EXPANDED_XXL = 'expanded_xxl',
 }
 
 interface BalanceCardProps {
   balances: Balance[];
+  onExpandedChange?: (isExpanded: boolean) => void;
 }
 
 // Componente para mostrar moneda y saldo con animación mejorada
@@ -168,6 +170,9 @@ const getHeightForState = (state: BalanceCardState): number => {
       return COLLAPSED_HEIGHT + (maxHeight - COLLAPSED_HEIGHT) * 0.5;
     case BalanceCardState.EXPANDED_HIGH:
       return maxHeight;
+    case BalanceCardState.EXPANDED_XXL:
+      // 4 veces el tamaño colapsado + ancho total del celular
+      return (COLLAPSED_HEIGHT * 4) + SCREEN_WIDTH;
     default:
       return COLLAPSED_HEIGHT;
   }
@@ -175,6 +180,7 @@ const getHeightForState = (state: BalanceCardState): number => {
 
 export const BalanceCard: React.FC<BalanceCardProps> = ({
   balances,
+  onExpandedChange,
 }) => {
   // Validar que haya balances
   if (!balances || balances.length === 0) {
@@ -189,6 +195,8 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   );
   const [selectedAction, setSelectedAction] = useState<string>('');
   const [shouldAnimateBalance, setShouldAnimateBalance] = useState(true);
+  const [showExpandedContent, setShowExpandedContent] = useState(false); // Control de visibilidad del contenido
+  const [menuAnimationDelay, setMenuAnimationDelay] = useState(0); // Delay para animación del menú
   const { addLog } = useLogs();
 
   const currentBalance = balances[currentBalanceIndex];
@@ -349,12 +357,15 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   // Función para cambiar de estado con animación
   const handleStateChange = (newState: BalanceCardState, actionId?: string) => {
     const targetHeight = getHeightForState(newState);
+    const isExpanding = newState !== BalanceCardState.COLLAPSED;
+    const wasExpanded = currentState !== BalanceCardState.COLLAPSED;
     
     const stateLabels: Record<BalanceCardState, string> = {
       [BalanceCardState.COLLAPSED]: 'Colapsado',
       [BalanceCardState.EXPANDED_LOW]: 'Expandido Bajo',
       [BalanceCardState.EXPANDED_MEDIUM]: 'Expandido Medio',
       [BalanceCardState.EXPANDED_HIGH]: 'Expandido Alto',
+      [BalanceCardState.EXPANDED_XXL]: 'Expandido XXL',
     };
     
     addLog(`🔄 BalanceCard: Cambio de estado a "${stateLabels[newState]}" (${newState})`);
@@ -362,6 +373,24 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       addLog(`📱 BalanceCard: Acción seleccionada: "${actionId}"`);
     }
     
+    // Si estamos expandiendo, mostrar contenido inmediatamente
+    if (isExpanding && !wasExpanded) {
+      setShowExpandedContent(true);
+    }
+    
+    // Calcular delay para animación del menú (después de que termine la animación de altura)
+    // La animación spring tarda aproximadamente 500-600ms
+    const heightAnimationDuration = 550;
+    
+    // Resetear delay primero para que BalanceActions reaccione
+    setMenuAnimationDelay(0);
+    
+    // Luego establecer el delay después de un pequeño timeout para que BalanceActions detecte el cambio
+    setTimeout(() => {
+      setMenuAnimationDelay(heightAnimationDuration);
+    }, 10);
+    
+    // Animar altura
     height.value = withSpring(targetHeight, {
       damping: 15,
       stiffness: 150,
@@ -372,29 +401,56 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     if (actionId) {
       setSelectedAction(actionId);
     }
+    
+    // Notificar cambio de estado expandido
+    if (onExpandedChange) {
+      const isExpanded = newState === BalanceCardState.EXPANDED_XXL && actionId === 'enviar';
+      setTimeout(() => {
+        onExpandedChange(isExpanded);
+      }, 100);
+    }
   };
 
   // Función para colapsar el card cuando se toca el saldo
   const handleCollapse = () => {
     addLog(`👆 BalanceCard: Tap en componente Saldo - Colapsando card`);
-    handleStateChange(BalanceCardState.COLLAPSED);
-    setSelectedAction('');
+    
+    // Notificar que ya no está expandido
+    if (onExpandedChange) {
+      onExpandedChange(false);
+    }
+    
+    // Secuencia: 1) Ocultar contenido, 2) Colapsar, 3) Mostrar botones
+    // Paso 1: Ocultar contenido primero
+    setShowExpandedContent(false);
+    
+    // Paso 2: Esperar un poco y luego colapsar
+    setTimeout(() => {
+      handleStateChange(BalanceCardState.COLLAPSED);
+      setSelectedAction('');
+    }, 200); // Pequeño delay para que se oculte el contenido
   };
 
   // Renderizar un card individual
   const renderCard = (balance: Balance, index: number) => {
     const cardStyle = getCardStyle(index);
+    const isExpandedWithTransfer = currentState === BalanceCardState.EXPANDED_XXL && selectedAction === 'enviar';
     
-    return (
-      <Animated.View
-        key={`${balance.currency}-${index}`}
-        style={[
-          styles.cardWrapper,
-          cardStyle,
-        ]}
-      >
+    // Contenido común del card
+    const cardContent = (
+      <>
         {/* Background SVG - Diferente según moneda */}
         <BalanceBackground currency={balance.currency} index={index} />
+
+        {/* Indicadores de posición - Dentro del card cuando está expandido */}
+        {isExpandedWithTransfer && balances.length > 1 && (
+          <View style={styles.indicatorsInsideCard}>
+            <BalanceIndicators 
+              total={balances.length} 
+              currentIndex={currentBalanceIndex}
+            />
+          </View>
+        )}
 
         {/* Header - Moneda y Saldo */}
         <View style={styles.header}>
@@ -408,12 +464,17 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         </View>
 
         {/* Actions Row - Botones de acción */}
-        <View style={styles.actionsRow}>
+        <View style={[
+          styles.actionsRow,
+          currentState !== BalanceCardState.COLLAPSED && styles.actionsRowExpanded
+        ]}>
           <BalanceActions
             currentState={currentState}
             onActionPress={(state, actionId) => handleStateChange(state, actionId)}
             availableActions={balance.availableActions}
             currentBalance={balance}
+            isExpanded={currentState !== BalanceCardState.COLLAPSED}
+            animationDelay={menuAnimationDelay}
           />
         </View>
 
@@ -422,15 +483,15 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
           {currentState === BalanceCardState.COLLAPSED && (
             <Text style={styles.expandableContent}>Colapsado</Text>
           )}
-          {currentState === BalanceCardState.EXPANDED_LOW && (
+          {showExpandedContent && currentState === BalanceCardState.EXPANDED_LOW && (
             <Text style={styles.expandableContent}>Exchange</Text>
           )}
-          {currentState === BalanceCardState.EXPANDED_MEDIUM && (
+          {showExpandedContent && currentState === BalanceCardState.EXPANDED_MEDIUM && (
             <Text style={styles.expandableContent}>
               {selectedAction === 'agregar' ? 'Agregar' : 'Pagar'}
             </Text>
           )}
-          {currentState === BalanceCardState.EXPANDED_HIGH && selectedAction === 'enviar' && (
+          {showExpandedContent && isExpandedWithTransfer && (
             <TransferContent
               currency={balance.currency}
               onContactSelect={(contact) => {
@@ -441,14 +502,42 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
             />
           )}
         </View>
+      </>
+    );
+    
+    return (
+      <Animated.View
+        key={`${balance.currency}-${index}`}
+        style={[
+          styles.cardWrapper,
+          isExpandedWithTransfer && styles.cardWrapperExpanded,
+          cardStyle,
+        ]}
+      >
+        {isExpandedWithTransfer ? (
+          // Cuando está expandido con transferencia, usar ScrollView unificado
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+          >
+            {cardContent}
+          </ScrollView>
+        ) : (
+          // Cuando no está expandido, renderizar normalmente
+          cardContent
+        )}
       </Animated.View>
     );
   };
 
+  const isExpandedWithTransfer = currentState === BalanceCardState.EXPANDED_XXL && selectedAction === 'enviar';
+  
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
-      {/* Indicadores de posición - Fuera del card stack para evitar overflow */}
-      {balances.length > 1 && (
+      {/* Indicadores de posición - Fuera del card stack solo cuando NO está expandido con transferencia */}
+      {balances.length > 1 && !isExpandedWithTransfer && (
         <BalanceIndicators 
           total={balances.length} 
           currentIndex={currentBalanceIndex}
@@ -480,7 +569,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
-    overflow: 'visible', // Cambiado a visible para que los indicadores se vean
+    overflow: 'hidden', // Cambiado a hidden para que el fondo mantenga el border radius
     position: 'relative',
   },
   cardStackContainer: {
@@ -494,9 +583,13 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     position: 'relative',
   },
+  cardWrapperExpanded: {
+    padding: 0,
+    paddingHorizontal: 0,
+  },
   header: {
     marginTop: SCREEN_HEIGHT * 0.0075,
-    marginBottom: SCREEN_HEIGHT * 0.03,
+    marginBottom: SCREEN_HEIGHT * 0.02, // Reducir espacio inferior
     position: 'relative',
     zIndex: 1,
   },
@@ -560,10 +653,18 @@ const styles = StyleSheet.create({
   actionsRow: {
     position: 'relative',
     zIndex: 1,
+    marginBottom: SPACING.md,
+  },
+  actionsRowExpanded: {
+    // Cuando está expandido, el menú se oculta, así que no necesitamos espacio
+    marginBottom: 0,
+    height: 0,
+    overflow: 'hidden',
   },
   expandableArea: {
     flex: 1,
-    paddingVertical: SPACING.md,
+    paddingTop: 0, // Sin padding top cuando el menú está oculto
+    paddingBottom: SPACING.md,
     position: 'relative',
     zIndex: 1,
   },
@@ -571,6 +672,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textSecondary,
     textAlign: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
   },
   indicatorsContainer: {
     flexDirection: 'row',
@@ -582,6 +691,11 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 20, // Mayor zIndex para estar sobre todo
     gap: SPACING.xs,
+  },
+  indicatorsInsideCard: {
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.sm,
+    zIndex: 10,
   },
   indicator: {
     width: 6,
