@@ -11,12 +11,26 @@ import {
   Alert,
   TouchableWithoutFeedback,
   Keyboard,
+  ScrollView,
 } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../constants';
 import { cognitoService } from '../services/auth/cognitoService';
 import { LoginBackground } from '../components/LoginBackground';
 import { LogViewer } from '../components/LogViewer';
 import { useLogs } from '../contexts/LogContext';
+
+const BackIcon = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M19 12H5M5 12L12 19M5 12L12 5"
+      stroke={COLORS.white}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
 
 interface ConfirmSignUpScreenProps {
   email: string;
@@ -115,63 +129,75 @@ export const ConfirmSignUpScreen: React.FC<ConfirmSignUpScreenProps> = ({
       >
         <LoginBackground />
         
-        <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={onBack}
-              disabled={isLoading}
-            >
-              <Text style={styles.backButtonText}>← Volver</Text>
-            </TouchableOpacity>
-            <Text style={styles.title}>Verifica tu cuenta</Text>
-            <Text style={styles.subtitle}>
-              Ingresa el código de verificación que enviamos a{'\n'}
-              <Text style={styles.email}>{email}</Text>
-            </Text>
-          </View>
+        {/* Header con botón volver - Mismo estilo que TransferScreen */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            disabled={isLoading}
+            activeOpacity={0.7}
+          >
+            <BackIcon />
+          </TouchableOpacity>
+        </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Código de verificación</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="123456"
-                placeholderTextColor={COLORS.textSecondary}
-                value={code}
-                onChangeText={setCode}
-                keyboardType="number-pad"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-                maxLength={6}
-              />
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            {/* Title Section */}
+            <View style={styles.titleSection}>
+              <Text style={styles.title}>Verifica tu cuenta</Text>
+              <Text style={styles.subtitle}>
+                Ingresa el código de verificación que enviamos a{'\n'}
+                <Text style={styles.email}>{email}</Text>
+              </Text>
             </View>
 
-            <TouchableOpacity
-              style={[styles.confirmButton, isLoading && styles.confirmButtonDisabled]}
-              onPress={handleConfirm}
-              disabled={isLoading}
-              activeOpacity={0.8}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={COLORS.primary} />
-              ) : (
-                <Text style={styles.confirmButtonText}>Verificar cuenta</Text>
-              )}
-            </TouchableOpacity>
+            {/* Form */}
+            <View style={styles.form}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Código de verificación</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="123456"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={code}
+                  onChangeText={setCode}
+                  keyboardType="number-pad"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isLoading}
+                  maxLength={6}
+                />
+              </View>
 
-            <TouchableOpacity
-              style={styles.resendButton}
-              onPress={handleResendCode}
-              disabled={isLoading}
-            >
-              <Text style={styles.resendButtonText}>Reenviar código</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmButton, isLoading && styles.confirmButtonDisabled]}
+                onPress={handleConfirm}
+                disabled={isLoading}
+                activeOpacity={0.8}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={COLORS.primary} />
+                ) : (
+                  <Text style={styles.confirmButtonText}>Verificar cuenta</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.resendButton}
+                onPress={handleResendCode}
+                disabled={isLoading}
+              >
+                <Text style={styles.resendButtonText}>Reenviar código</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </ScrollView>
 
         {/* Badge de versión flotante */}
         <TouchableOpacity
@@ -179,7 +205,7 @@ export const ConfirmSignUpScreen: React.FC<ConfirmSignUpScreenProps> = ({
           onPress={() => setIsLogViewerVisible(true)}
           activeOpacity={0.7}
         >
-          <Text style={styles.versionBadgeText}>v1.78</Text>
+          <Text style={styles.versionBadgeText}>v1.79</Text>
         </TouchableOpacity>
 
         {/* LogViewer */}
@@ -197,25 +223,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingBottom: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+    backgroundColor: 'transparent',
+  },
+  backButton: {
+    padding: SPACING.sm,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: SPACING.xl,
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: SPACING.lg,
     zIndex: 1,
   },
-  header: {
+  titleSection: {
     alignItems: 'center',
     marginBottom: SPACING.xxl,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: SPACING.md,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: COLORS.white,
-    opacity: 0.9,
-    fontFamily: FONTS.inter.regular,
   },
   title: {
     fontSize: 32,
@@ -248,7 +283,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.white,
     marginBottom: SPACING.sm,
-    fontFamily: FONTS.inter.semiBold,
+    fontFamily: FONTS.inter.bold,
   },
   input: {
     backgroundColor: COLORS.white,

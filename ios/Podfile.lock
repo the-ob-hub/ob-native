@@ -1530,6 +1530,8 @@ PODS:
     - React-Core
   - RNCClipboard (1.16.3):
     - React-Core
+  - RNDateTimePicker (8.5.0):
+    - React-Core
   - RNGestureHandler (2.29.1):
     - DoubleConversion
     - glog
@@ -1713,6 +1715,7 @@ DEPENDENCIES:
   - RNAWSCognito (from `../node_modules/amazon-cognito-identity-js`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
+  - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
@@ -1860,6 +1863,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNCClipboard:
     :path: "../node_modules/@react-native-clipboard/clipboard"
+  RNDateTimePicker:
+    :path: "../node_modules/@react-native-community/datetimepicker"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNReanimated:
@@ -1940,6 +1945,7 @@ SPEC CHECKSUMS:
   RNAWSCognito: c271cb77af824c5fbfb5060cb22ecae245376939
   RNCAsyncStorage: b44e8a4e798c3e1f56bffccd0f591f674fb9198f
   RNCClipboard: f6679d470d0da2bce2a37b0af7b9e0bf369ecda5
+  RNDateTimePicker: 22c0ea66424371299c2fb82b342d9e384bc84d0b
   RNGestureHandler: f90e37613fe368dc85a9e4946e790d74f0f17e65
   RNReanimated: ceca32884756a34f3a3b0ffd12f060a3f44c31fa
   RNScreens: 044ad770fb07ea7c79103a15777c3180aee96082

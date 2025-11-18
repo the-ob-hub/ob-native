@@ -13,11 +13,37 @@ import {
   Keyboard,
   ScrollView,
 } from 'react-native';
+import Svg, { Rect, Defs, LinearGradient, Stop, Path } from 'react-native-svg';
 import { COLORS, SPACING, BORDER_RADIUS, FONTS } from '../constants';
 import { cognitoService, SignUpData } from '../services/auth/cognitoService';
 import { LoginBackground } from '../components/LoginBackground';
 import { LogViewer } from '../components/LogViewer';
 import { useLogs } from '../contexts/LogContext';
+import { DatePickerLATAM, formatDateForService } from '../components/DatePickerLATAM';
+import { PasswordValidator } from '../components/PasswordValidator';
+
+const LogoRegistro = () => (
+  <View style={styles.logoWrapper}>
+    <Svg width={200} height={200} viewBox="0 0 1024 1024" fill="none">
+      <Defs>
+        <LinearGradient id="paint0_linear_104_56" x1="-47.7867" y1="-9.22114e-06" x2="952.32" y2="1068.37" gradientUnits="userSpaceOnUse">
+          <Stop stopColor="#045CFF" />
+          <Stop offset="1" stopColor="#002B6C" />
+        </LinearGradient>
+      </Defs>
+      <Rect width="1024" height="1024" rx="222" fill="url(#paint0_linear_104_56)" />
+      <Path d="M266 841V654H341.046C354.835 654 366.336 656.039 375.549 660.118C384.762 664.196 391.687 669.857 396.324 677.101C400.961 684.284 403.279 692.563 403.279 701.937C403.279 709.242 401.815 715.664 398.886 721.203C395.958 726.682 391.931 731.186 386.806 734.717C381.742 738.187 375.946 740.652 369.417 742.113V743.939C376.556 744.243 383.237 746.252 389.46 749.965C395.744 753.679 400.839 758.883 404.744 765.579C408.648 772.214 410.601 780.128 410.601 789.319C410.601 799.242 408.13 808.098 403.188 815.89C398.307 823.621 391.077 829.739 381.498 834.243C371.919 838.748 360.113 841 346.08 841H266ZM305.628 808.677H337.934C348.978 808.677 357.031 806.577 362.096 802.376C367.16 798.115 369.692 792.454 369.692 785.393C369.692 780.219 368.441 775.653 365.939 771.697C363.438 767.74 359.869 764.636 355.232 762.383C350.656 760.131 345.195 759.005 338.85 759.005H305.628V808.677ZM305.628 732.251H335.006C340.436 732.251 345.256 731.308 349.466 729.421C353.737 727.473 357.092 724.734 359.533 721.203C362.035 717.673 363.285 713.442 363.285 708.511C363.285 701.754 360.875 696.306 356.055 692.167C351.296 688.028 344.524 685.958 335.738 685.958H305.628V732.251Z" fill="white" />
+      <Path d="M580.274 654V841H546.045L464.501 723.303H463.129V841H423.501V654H458.278L539.181 771.605H540.829V654H580.274Z" fill="white" />
+      <Path d="M600.129 841V654H639.757V736.452H642.228L709.678 654H757.176L687.621 737.73L758 841H710.593L659.25 764.118L639.757 787.858V841H600.129Z" fill="white" />
+      <Rect x="266" y="182" width="236" height="416" rx="91" fill="white" />
+      <Rect x="522" y="276" width="236" height="322" rx="91" fill="white" />
+    </Svg>
+    
+    {/* Textos debajo del logo */}
+    <Text style={styles.welcomeText}>bienvenido a OoBnk</Text>
+    <Text style={styles.subtitleText}>Crear una cuenta sin costos ni comisiones!</Text>
+  </View>
+);
 
 interface SignUpScreenProps {
   onBack: () => void;
@@ -30,12 +56,13 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   onSignUpSuccess,
   onShowConfirm,
 }) => {
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [birthDate, setBirthDate] = useState('');
+  const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [address, setAddress] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -44,8 +71,12 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   const { addLog } = useLogs();
 
   const validateForm = (): { isValid: boolean; message?: string } => {
-    if (!fullName.trim()) {
-      return { isValid: false, message: 'El nombre completo es obligatorio' };
+    if (!firstName.trim()) {
+      return { isValid: false, message: 'El nombre es obligatorio' };
+    }
+
+    if (!lastName.trim()) {
+      return { isValid: false, message: 'El apellido es obligatorio' };
     }
 
     if (!email.trim()) {
@@ -56,6 +87,23 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       return { isValid: false, message: 'Por favor ingresa un email válido' };
+    }
+
+    if (!birthDate) {
+      return { isValid: false, message: 'La fecha de nacimiento es obligatoria' };
+    }
+
+    if (!phoneNumber.trim()) {
+      return { isValid: false, message: 'El teléfono es obligatorio' };
+    }
+
+    // Validar formato de teléfono (debe empezar con + y código de país)
+    if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber.trim())) {
+      return { isValid: false, message: 'El teléfono debe tener formato internacional (ej: +59812345678)' };
+    }
+
+    if (!address.trim()) {
+      return { isValid: false, message: 'La dirección es obligatoria' };
     }
 
     if (!password.trim()) {
@@ -90,29 +138,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
       return { isValid: false, message: 'Las contraseñas no coinciden' };
     }
 
-    if (!phoneNumber.trim()) {
-      return { isValid: false, message: 'El teléfono es obligatorio' };
-    }
-
-    // Validar formato de teléfono (debe empezar con + y código de país)
-    if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber.trim())) {
-      return { isValid: false, message: 'El teléfono debe tener formato internacional (ej: +59812345678)' };
-    }
-
-    if (!birthDate.trim()) {
-      return { isValid: false, message: 'La fecha de nacimiento es obligatoria' };
-    }
-
-    // Validar formato de fecha YYYY-MM-DD
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(birthDate.trim())) {
-      return { isValid: false, message: 'La fecha debe tener formato YYYY-MM-DD (ej: 1990-01-15)' };
-    }
-
-    if (!address.trim()) {
-      return { isValid: false, message: 'La dirección es obligatoria' };
-    }
-
     return { isValid: true };
   };
 
@@ -128,12 +153,18 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
     addLog(`📝 SignUpScreen - Iniciando registro para: ${email.trim()}`);
 
     try {
+      // Concatenar nombre y apellido para fullName
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      
+      // Convertir fecha al formato YYYY-MM-DD para el servicio
+      const birthDateFormatted = birthDate ? formatDateForService(birthDate) : '';
+
       const signUpData: SignUpData = {
         email: email.trim(),
         password: password,
-        fullName: fullName.trim(),
+        fullName: fullName,
         phoneNumber: phoneNumber.trim(),
-        birthDate: birthDate.trim(),
+        birthDate: birthDateFormatted,
         address: address.trim(),
       };
 
@@ -150,9 +181,9 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         const signUpDataForStorage: SignUpData = {
           email: email.trim(),
           password: password, // No se guarda, solo para referencia
-          fullName: fullName.trim(),
+          fullName: fullName,
           phoneNumber: phoneNumber.trim(),
-          birthDate: birthDate.trim(),
+          birthDate: birthDateFormatted,
           address: address.trim(),
         };
         
@@ -177,27 +208,28 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <LoginBackground />
+      
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        bounces={true}
+        scrollEnabled={true}
+        nestedScrollEnabled={true}
       >
-        <LoginBackground />
-        
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
           <View style={styles.content}>
+            {/* Logo con textos */}
+            <LogoRegistro />
+
             {/* Header */}
             <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={onBack}
-                disabled={isLoading}
-              >
-                <Text style={styles.backButtonText}>← Volver</Text>
-              </TouchableOpacity>
               <Text style={styles.title}>Crear cuenta</Text>
               <Text style={styles.subtitle}>
                 Completa los siguientes campos para crear tu cuenta
@@ -206,22 +238,92 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
             {/* Form */}
             <View style={styles.form}>
+              {/* 1. Nombre/s */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>
-                  Nombre completo <Text style={styles.required}>*</Text>
+                  Nombre/s <Text style={styles.required}>*</Text>
                 </Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Juan Pérez"
+                  placeholder="Juan"
                   placeholderTextColor={COLORS.textSecondary}
-                  value={fullName}
-                  onChangeText={setFullName}
+                  value={firstName}
+                  onChangeText={setFirstName}
                   autoCapitalize="words"
                   autoCorrect={false}
                   editable={!isLoading}
                 />
               </View>
 
+              {/* 2. Apellido/s */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>
+                  Apellido/s <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Pérez"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={lastName}
+                  onChangeText={setLastName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  editable={!isLoading}
+                />
+              </View>
+
+              {/* 3. Fecha de Nacimiento */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>
+                  Fecha de Nacimiento <Text style={styles.required}>*</Text>
+                </Text>
+                <DatePickerLATAM
+                  value={birthDate}
+                  onChange={setBirthDate}
+                  placeholder="DD/MM/AAAA"
+                  disabled={isLoading}
+                />
+              </View>
+
+              {/* 4. Teléfono */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>
+                  Teléfono <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="+59812345678"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isLoading}
+                />
+                <Text style={styles.helperText}>Formato internacional con código de país</Text>
+              </View>
+
+              {/* 5. Dirección */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>
+                  Dirección <Text style={styles.required}>*</Text>
+                </Text>
+                <TextInput
+                  style={[styles.input, styles.addressInput]}
+                  placeholder="Calle, número, ciudad"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={address}
+                  onChangeText={setAddress}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  editable={!isLoading}
+                  multiline
+                  numberOfLines={2}
+                />
+              </View>
+
+              {/* 6. Email */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>
                   Email <Text style={styles.required}>*</Text>
@@ -239,6 +341,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 />
               </View>
 
+              {/* 7. Contraseña */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>
                   Contraseña <Text style={styles.required}>*</Text>
@@ -246,7 +349,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 <View style={styles.passwordContainer}>
                   <TextInput
                     style={styles.passwordInput}
-                    placeholder="Mín. 8 caracteres, mayúscula, número y especial"
+                    placeholder="Ingresa tu contraseña"
                     placeholderTextColor={COLORS.textSecondary}
                     value={password}
                     onChangeText={setPassword}
@@ -265,9 +368,10 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 </View>
               </View>
 
+              {/* 8. Repetir contraseña */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>
-                  Confirmar contraseña <Text style={styles.required}>*</Text>
+                  Repetir contraseña <Text style={styles.required}>*</Text>
                 </Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
@@ -293,69 +397,15 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 </View>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>
-                  Teléfono <Text style={styles.required}>*</Text>
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="+59812345678"
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!isLoading}
-                />
-                <Text style={styles.helperText}>Formato internacional con código de país</Text>
-              </View>
+              {/* Validador de contraseña - debajo de repetir contraseña */}
+              {password && <PasswordValidator password={password} />}
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>
-                  Fecha de nacimiento <Text style={styles.required}>*</Text>
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="1990-01-15"
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={birthDate}
-                  onChangeText={setBirthDate}
-                  keyboardType="default"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!isLoading}
-                />
-                <Text style={styles.helperText}>Formato: YYYY-MM-DD</Text>
-              </View>
+              {/* Texto legal antes del botón */}
+              <Text style={styles.legalText}>
+                Al crear la cuenta aceptas nuestros términos y condiciones de uso y política de privacidad.
+              </Text>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>
-                  Dirección <Text style={styles.required}>*</Text>
-                </Text>
-                <TextInput
-                  style={[styles.input, styles.addressInput]}
-                  placeholder="Calle, número, ciudad"
-                  placeholderTextColor={COLORS.textSecondary}
-                  value={address}
-                  onChangeText={setAddress}
-                  autoCapitalize="words"
-                  autoCorrect={false}
-                  editable={!isLoading}
-                  multiline
-                  numberOfLines={2}
-                />
-              </View>
-
-              <View style={styles.passwordRequirements}>
-                <Text style={styles.passwordRequirementsTitle}>La contraseña debe contener:</Text>
-                <Text style={styles.passwordRequirement}>• Al menos 8 caracteres</Text>
-                <Text style={styles.passwordRequirement}>• Una letra mayúscula</Text>
-                <Text style={styles.passwordRequirement}>• Una letra minúscula</Text>
-                <Text style={styles.passwordRequirement}>• Un número</Text>
-                <Text style={styles.passwordRequirement}>• Un carácter especial</Text>
-              </View>
-
+              {/* Botón crear cuenta */}
               <TouchableOpacity
                 style={[styles.signUpButton, isLoading && styles.signUpButtonDisabled]}
                 onPress={handleSignUp}
@@ -369,38 +419,35 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 )}
               </TouchableOpacity>
 
+              {/* Footer con link a login */}
               <View style={styles.footer}>
-                <Text style={styles.footerText}>
-                  Al crear una cuenta, aceptas nuestros términos y condiciones
-                </Text>
                 <TouchableOpacity
                   onPress={onBack}
                   disabled={isLoading}
                   style={styles.loginLink}
                 >
-                  <Text style={styles.loginLinkText}>¿Ya tienes cuenta? Iniciar sesión</Text>
+                  <Text style={styles.loginLinkText}>¿Ya tienes cuenta? - Iniciar sesión</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
-        </ScrollView>
+      </ScrollView>
 
-        {/* Badge de versión flotante */}
-        <TouchableOpacity
-          style={styles.versionBadge}
-          onPress={() => setIsLogViewerVisible(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.versionBadgeText}>v1.78</Text>
-        </TouchableOpacity>
+      {/* Badge de versión flotante */}
+      <TouchableOpacity
+        style={styles.versionBadge}
+        onPress={() => setIsLogViewerVisible(true)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.versionBadgeText}>v1.79</Text>
+      </TouchableOpacity>
 
-        {/* LogViewer */}
-        <LogViewer
-          visible={isLogViewerVisible}
-          onClose={() => setIsLogViewerVisible(false)}
-        />
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+      {/* LogViewer */}
+      <LogViewer
+        visible={isLogViewerVisible}
+        onClose={() => setIsLogViewerVisible(false)}
+      />
+    </KeyboardAvoidingView>
   );
 };
 
@@ -409,8 +456,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: SPACING.xl * 2,
   },
   content: {
     flex: 1,
@@ -419,19 +470,32 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xl,
     zIndex: 1,
   },
+  logoWrapper: {
+    width: 200,
+    alignSelf: 'center',
+    marginTop: SPACING.lg * 2, // Doble del margen actual
+    marginBottom: SPACING.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  welcomeText: {
+    fontSize: 18,
+    fontFamily: FONTS.inter.bold,
+    color: COLORS.white,
+    marginTop: SPACING.md,
+    textAlign: 'center',
+  },
+  subtitleText: {
+    fontSize: 14,
+    fontFamily: FONTS.inter.regular,
+    color: COLORS.white,
+    opacity: 0.9,
+    marginTop: SPACING.xs,
+    textAlign: 'center',
+  },
   header: {
     alignItems: 'center',
     marginBottom: SPACING.xxl,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: SPACING.md,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: COLORS.white,
-    opacity: 0.9,
-    fontFamily: FONTS.inter.regular,
   },
   title: {
     fontSize: 32,
@@ -460,7 +524,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.white,
     marginBottom: SPACING.sm,
-    fontFamily: FONTS.inter.semiBold,
+    fontFamily: FONTS.inter.bold,
   },
   required: {
     color: COLORS.error,
@@ -505,13 +569,23 @@ const styles = StyleSheet.create({
   eyeButtonText: {
     fontSize: 20,
   },
+  legalText: {
+    fontSize: 11,
+    color: COLORS.white,
+    opacity: 0.7,
+    textAlign: 'center',
+    fontFamily: FONTS.inter.regular,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.sm,
+  },
   signUpButton: {
     backgroundColor: COLORS.white,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: SPACING.lg,
+    marginTop: SPACING.sm,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -527,38 +601,9 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontFamily: FONTS.inter.bold,
   },
-  passwordRequirements: {
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
-    padding: SPACING.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: BORDER_RADIUS.sm,
-  },
-  passwordRequirementsTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.white,
-    marginBottom: SPACING.xs,
-    fontFamily: FONTS.inter.semiBold,
-  },
-  passwordRequirement: {
-    fontSize: 11,
-    color: COLORS.white,
-    opacity: 0.8,
-    marginTop: SPACING.xs / 2,
-    fontFamily: FONTS.inter.regular,
-  },
   footer: {
     marginTop: SPACING.lg,
     alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 12,
-    color: COLORS.white,
-    opacity: 0.7,
-    textAlign: 'center',
-    fontFamily: FONTS.inter.regular,
-    marginBottom: SPACING.md,
   },
   loginLink: {
     marginTop: SPACING.sm,
@@ -588,4 +633,3 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
 });
-
