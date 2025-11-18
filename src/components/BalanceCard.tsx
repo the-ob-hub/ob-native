@@ -16,7 +16,9 @@ import { BalanceBackground } from './BalanceBackground';
 import { TransferContent } from './TransferContent';
 import { useLogs } from '../contexts/LogContext';
 import { Balance, ActionId } from '../models';
+import { UserContact } from '../models/contacts';
 import { trackingService } from '../services/analytics/trackingService';
+import { formatCurrency, splitFormattedAmount } from '../utils/numberFormatter';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -32,6 +34,7 @@ export enum BalanceCardState {
 interface BalanceCardProps {
   balances: Balance[];
   onExpandedChange?: (isExpanded: boolean) => void;
+  onContactSelect?: (contact: UserContact, currency: Currency) => void;
 }
 
 // Componente para mostrar moneda y saldo con animación mejorada
@@ -95,17 +98,9 @@ const BalanceDisplay: React.FC<{
     }
   }, [balance, isActive]);
 
-  // Formatear el número con separadores de miles y decimales
-  const balanceStr = displayBalance.toLocaleString('es-AR', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2,
-    useGrouping: true,
-  });
-  
-  // Dividir en parte entera y decimal (sin coma)
-  const parts = balanceStr.replace(/\./g, '|').split(',');
-  const integerPart = parts[0].replace(/\|/g, '.'); // Restaurar puntos de miles
-  const decimalPart = parts[1] || '00';
+  // Formatear el número según el estándar: miles con coma, decimales con punto
+  const formattedBalance = formatCurrency(displayBalance);
+  const { integer: integerPart, decimal: decimalPart } = splitFormattedAmount(formattedBalance);
   
   return (
     <TouchableOpacity 
@@ -121,7 +116,9 @@ const BalanceDisplay: React.FC<{
           <Text style={styles.currencyText}>{currency}</Text>
           <View style={styles.balanceAmountContainer}>
             <Text style={styles.balanceInteger}>{integerPart}</Text>
-            <Text style={styles.balanceDecimal}>{decimalPart}</Text>
+            {decimalPart && (
+              <Text style={styles.balanceDecimal}>{decimalPart}</Text>
+            )}
           </View>
         </View>
       </View>
@@ -181,6 +178,7 @@ const getHeightForState = (state: BalanceCardState): number => {
 export const BalanceCard: React.FC<BalanceCardProps> = ({
   balances,
   onExpandedChange,
+  onContactSelect,
 }) => {
   // Validar que haya balances
   if (!balances || balances.length === 0) {
@@ -492,14 +490,15 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
             </Text>
           )}
           {showExpandedContent && isExpandedWithTransfer && (
-            <TransferContent
-              currency={balance.currency}
-              onContactSelect={(contact) => {
-                addLog(`✅ BalanceCard - Contacto seleccionado para transferencia: ${contact.fullName}`);
-                // TODO: Navegar a pantalla de confirmación de transferencia
-                // Por ahora solo logueamos
-              }}
-            />
+                  <TransferContent
+                    currency={balance.currency}
+                    onContactSelect={(contact) => {
+                      addLog(`✅ BalanceCard - Contacto seleccionado para transferencia: ${contact.fullName}`);
+                      if (onContactSelect) {
+                        onContactSelect(contact, balance.currency);
+                      }
+                    }}
+                  />
           )}
         </View>
       </>

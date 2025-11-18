@@ -7,9 +7,12 @@ import { UserAvatar } from '../components/UserAvatar';
 import { ProfileSheet } from '../components/ProfileSheet';
 import { ColorPickerCircles } from '../components/ColorPickerCircles';
 import { BalanceCard } from '../components/BalanceCard';
-import { User, Balance } from '../models';
+import { TransferScreen } from './TransferScreen';
+import { User, Balance, Currency } from '../models';
+import { UserContact } from '../models/contacts';
 import { db } from '../data/database';
 import { useBackgroundColor } from '../contexts/BackgroundColorContext';
+import { useLogs } from '../contexts/LogContext';
 
 interface HomeScreenProps {
   onLogout?: () => void;
@@ -21,11 +24,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [isBalanceExpanded, setIsBalanceExpanded] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<UserContact | null>(null);
+  const [showTransferScreen, setShowTransferScreen] = useState(false);
+  const [transferDestinationCurrency, setTransferDestinationCurrency] = useState<Currency>('USDc');
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const avatarRef = useRef<View | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const { setShowColorPicker, setAvatarPosition } = useBackgroundColor();
+  const { addLog } = useLogs();
 
   // Mock balances - TODO: Reemplazar con llamada al backend
   // Orden: 1. UYU (Pesos), 2. USD, 3. USDc
@@ -213,10 +220,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
               contentOffset={{ x: 0, y: 0 }}
             >
               <View style={styles.headerSpacer} />
-              <BalanceCard 
-                balances={balances.length > 0 ? balances : getMockBalances()} 
-                onExpandedChange={setIsBalanceExpanded}
-              />
+                      <BalanceCard 
+                        balances={balances.length > 0 ? balances : getMockBalances()} 
+                        onExpandedChange={setIsBalanceExpanded}
+                        onContactSelect={(contact, currency) => {
+                          addLog(`✅ HomeScreen - Contacto seleccionado para transferencia: ${contact.fullName}, moneda destino: ${currency}`);
+                          setSelectedContact(contact);
+                          setTransferDestinationCurrency(currency);
+                          setShowTransferScreen(true);
+                        }}
+                      />
               {!isBalanceExpanded && (
                 <View style={styles.emptyCard}>
                   <Text style={styles.cardTitle}>Movimientos Unificados</Text>
@@ -231,6 +244,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
             user={currentUser}
             onLogout={onLogout}
           />
+
+                  {/* Pantalla de transferencia - Modal fullscreen */}
+                  <TransferScreen
+                    visible={showTransferScreen}
+                    contact={selectedContact}
+                    balances={balances.length > 0 ? balances : getMockBalances()}
+                    destinationCurrency={transferDestinationCurrency}
+                    onClose={() => {
+                      // Resetear estado al cerrar
+                      setShowTransferScreen(false);
+                      setSelectedContact(null);
+                    }}
+                    onContinue={(amount, sourceCurrency, destinationCurrency) => {
+                      addLog(`✅ HomeScreen - Transferencia iniciada: ${amount} ${destinationCurrency} (desde ${sourceCurrency}) a ${selectedContact?.fullName}`);
+                      // TODO: Implementar lógica de transferencia
+                      // Por ahora cerramos la pantalla y reseteamos
+                      setShowTransferScreen(false);
+                      setSelectedContact(null);
+                    }}
+                  />
         </>
       )}
     </View>
