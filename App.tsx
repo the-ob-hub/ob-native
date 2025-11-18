@@ -205,7 +205,7 @@ function App() {
         phone: signUpData?.phoneNumber || '',
         birthDate: signUpData?.birthDate || '',
         address: signUpData?.address || '',
-        onboardingStatus: 'completed' as const, // Completado para ir directo a home
+        onboardingStatus: 'pending' as const, // Pendiente hasta confirmar PIN
         createdAt: now,
         updatedAt: now,
       };
@@ -228,13 +228,37 @@ function App() {
       // Continuar aunque falle
     }
     
-    // Navegar directamente a la home (sin confirmación de email para desarrollo)
-    logger.log(`📱 App - handleSignUpSuccess() - Navegando directamente a MainTabs (modo desarrollo)`);
-    setCurrentScreen('main');
+    // NO navegar aquí - la navegación se hace en handleShowConfirm
   };
 
-  const handleConfirmSignUpSuccess = () => {
-    logger.log(`✅ App - handleConfirmSignUpSuccess() - Verificación exitosa, navegando a LoginScreen`);
+  const handleShowConfirm = (email: string, username: string) => {
+    logger.log(`📱 App - handleShowConfirm() - Mostrando pantalla de confirmación`);
+    logger.log(`📧 App - handleShowConfirm() - Email: ${email}`);
+    logger.log(`👤 App - handleShowConfirm() - Username: ${username}`);
+    setSignUpEmail(email);
+    setSignUpUsername(username);
+    setCurrentScreen('confirmSignup');
+  };
+
+  const handleConfirmSignUpSuccess = async () => {
+    logger.log(`✅ App - handleConfirmSignUpSuccess() - Verificación exitosa`);
+    
+    // Actualizar onboardingStatus a 'completed' después de confirmar
+    try {
+      const { db } = await import('./src/data/database');
+      await db.init();
+      const userId = signUpEmail;
+      if (userId) {
+        await db.updateUser(userId, {
+          onboardingStatus: 'completed',
+        });
+        logger.log(`✅ App - handleConfirmSignUpSuccess() - Estado de onboarding actualizado a 'completed'`);
+      }
+    } catch (dbError: any) {
+      logger.error(`❌ App - handleConfirmSignUpSuccess() - Error actualizando estado: ${dbError.message}`);
+    }
+    
+    logger.log(`📱 App - handleConfirmSignUpSuccess() - Navegando a LoginScreen`);
     setCurrentScreen('login');
   };
 
@@ -304,6 +328,7 @@ function App() {
             <SignUpScreen
               onBack={() => setCurrentScreen('login')}
               onSignUpSuccess={handleSignUpSuccess}
+              onShowConfirm={handleShowConfirm}
             />
           </BackgroundColorProvider>
         </LogProvider>

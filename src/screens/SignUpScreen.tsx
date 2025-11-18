@@ -22,11 +22,13 @@ import { useLogs } from '../contexts/LogContext';
 interface SignUpScreenProps {
   onBack: () => void;
   onSignUpSuccess: (email: string, username: string, signUpData?: SignUpData) => void;
+  onShowConfirm: (email: string, username: string) => void;
 }
 
 export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   onBack,
   onSignUpSuccess,
+  onShowConfirm,
 }) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -154,9 +156,13 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
           address: address.trim(),
         };
         
-        // Navegar directamente a home (modo desarrollo - sin confirmación de email)
-        addLog('📱 SignUpScreen - Navegando directamente a home (modo desarrollo)');
+        // Guardar datos primero
+        addLog('💾 SignUpScreen - Guardando datos del registro');
         onSignUpSuccess(email.trim(), username, signUpDataForStorage);
+        
+        // Navegar a pantalla de confirmación de PIN
+        addLog('📱 SignUpScreen - Navegando a pantalla de confirmación de PIN');
+        onShowConfirm(email.trim(), username);
       } else {
         addLog(`❌ SignUpScreen - Error en registro: ${result.message || 'Error desconocido'}`);
         Alert.alert('Error', result.message || 'Error al registrar usuario');
@@ -385,7 +391,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
           onPress={() => setIsLogViewerVisible(true)}
           activeOpacity={0.7}
         >
-          <Text style={styles.versionBadgeText}>v1.77</Text>
+          <Text style={styles.versionBadgeText}>v1.78</Text>
         </TouchableOpacity>
 
         {/* LogViewer */}
