@@ -78,6 +78,7 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const keyboardSlideAnim = useRef(new Animated.Value(0)).current;
   const keyboardOpacityAnim = useRef(new Animated.Value(1)).current;
+  const backgroundFadeAnim = useRef(new Animated.Value(0)).current;
 
   // Resetear todo cuando se abre/cierra la pantalla o cambia el contacto
   useEffect(() => {
@@ -91,12 +92,22 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
       shakeAnim.setValue(0);
       // Inicializar con la moneda destino (que es la del balance origen)
       setSourceCurrency(destinationCurrency);
+      
+      // Animación fade-in del fondo
+      backgroundFadeAnim.setValue(0);
+      Animated.timing(backgroundFadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+      
       addLog(`🔄 TransferScreen - Pantalla abierta para ${contact.fullName}, destino: ${destinationCurrency}, estado reseteado`);
     } else {
       // Ocultar y resetear cuando se cierra
       setIsKeyboardVisible(false);
       keyboardSlideAnim.setValue(KEYBOARD_HEIGHT);
       keyboardOpacityAnim.setValue(0);
+      backgroundFadeAnim.setValue(0);
       setAmount('');
       setShowCurrencyPicker(false);
     }
@@ -278,9 +289,12 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
       statusBarTranslucent
     >
       <View style={styles.container}>
-        <SharedBackground />
+        {/* Fondo con fade-in */}
+        <Animated.View style={[styles.backgroundWrapper, { opacity: backgroundFadeAnim }]}>
+          <SharedBackground />
+        </Animated.View>
         
-                {/* Header con botón volver */}
+        {/* Header con botón volver */}
                 <View style={styles.header}>
                 <TouchableOpacity
                   style={styles.backButton}
@@ -561,7 +575,15 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#000000', // Fondo negro para evitar flash blanco mientras carga
+  },
+  backgroundWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 20,
