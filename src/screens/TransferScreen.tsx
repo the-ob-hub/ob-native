@@ -10,6 +10,13 @@ import {
   Modal,
   Animated,
 } from 'react-native';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import AnimatedReanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+} from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { COLORS, SPACING, FONTS, BORDER_RADIUS } from '../constants';
 import { ContactAvatar } from '../components/ContactAvatar';
@@ -54,6 +61,120 @@ const ChevronDownIcon = () => (
     />
   </Svg>
 );
+
+const SendIcon = () => (
+  <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"
+      stroke={COLORS.white}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+// Componente SlideToSendButton
+interface SlideToSendButtonProps {
+  onSend: () => void;
+  disabled?: boolean;
+}
+
+const SlideToSendButton: React.FC<SlideToSendButtonProps> = ({ onSend, disabled = false }) => {
+  const translateX = useSharedValue(0);
+  const progress = useSharedValue(0);
+  const [isComplete, setIsComplete] = useState(false);
+  const buttonWidth = SCREEN_WIDTH * 0.88; // Mismo ancho que el buscador
+  const thumbWidth = 56;
+  const slideThreshold = buttonWidth - thumbWidth - 4; // Ancho total menos el thumb
+
+  const handleComplete = () => {
+    setIsComplete(true);
+    Vibration.vibrate(100);
+    onSend();
+  };
+
+  const panGesture = Gesture.Pan()
+    .enabled(!disabled && !isComplete)
+    .onUpdate((event) => {
+      if (event.translationX >= 0 && event.translationX <= slideThreshold) {
+        translateX.value = event.translationX;
+        progress.value = event.translationX / slideThreshold;
+      }
+    })
+    .onEnd((event) => {
+      if (event.translationX >= slideThreshold * 0.8) {
+        // Completado si llega al 80% - enviar
+        translateX.value = withSpring(slideThreshold);
+        progress.value = withSpring(1);
+        runOnJS(handleComplete)();
+      } else {
+        // Resetear si no se completó
+        translateX.value = withSpring(0);
+        progress.value = withSpring(0);
+      }
+    });
+
+  const slideButtonStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }],
+    };
+  });
+
+  const progressStyle = useAnimatedStyle(() => {
+    return {
+      width: translateX.value + thumbWidth,
+    };
+  });
+
+  const textOpacityStyle = useAnimatedStyle(() => {
+    return {
+      opacity: 1 - progress.value * 0.8,
+    };
+  });
+
+  const iconOpacityStyle = useAnimatedStyle(() => {
+    return {
+      opacity: progress.value,
+      transform: [{ scale: 0.5 + progress.value * 0.5 }],
+    };
+  });
+
+  // Resetear cuando se deshabilita o cambia el monto
+  React.useEffect(() => {
+    if (disabled) {
+      translateX.value = 0;
+      progress.value = 0;
+      setIsComplete(false);
+    }
+  }, [disabled]);
+
+  return (
+    <View style={styles.slideButtonContainer}>
+      <GestureDetector gesture={panGesture}>
+        <AnimatedReanimated.View style={[styles.slideButton, disabled && styles.slideButtonDisabled]}>
+          {/* Barra de progreso */}
+          <AnimatedReanimated.View style={[styles.slideProgress, progressStyle]} />
+          
+          {/* Contenido del botón */}
+          <View style={styles.slideButtonContent}>
+            <AnimatedReanimated.View style={[styles.slideButtonTextContainer, textOpacityStyle]}>
+              <Text style={styles.slideButtonText}>Desliza para enviar</Text>
+            </AnimatedReanimated.View>
+            <AnimatedReanimated.View style={[styles.slideButtonIconContainer, iconOpacityStyle]}>
+              <SendIcon />
+            </AnimatedReanimated.View>
+          </View>
+          
+          {/* Thumb deslizable */}
+          <AnimatedReanimated.View style={[styles.slideThumb, slideButtonStyle]}>
+            <SendIcon />
+          </AnimatedReanimated.View>
+        </AnimatedReanimated.View>
+      </GestureDetector>
+    </View>
+  );
+};
 
 // Tasas de cambio mock (en producción vendrían del backend)
 const EXCHANGE_RATES: Record<string, Record<string, number>> = {
@@ -318,7 +439,7 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
       <View style={[styles.contentWrapper, { height: AVAILABLE_HEIGHT }]}>
         {/* Información del contacto */}
         <View style={styles.contactSection}>
-          <ContactAvatar contact={contact} size={70} />
+          <ContactAvatar contact={contact} size={70} showBorder={true} />
           <Text style={styles.contactName} numberOfLines={2}>
             {contact.fullName}
           </Text>
@@ -381,28 +502,6 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
           </Animated.View>
         </TouchableOpacity>
 
-        {/* Conversión - Entre contenedor y saldo restante */}
-        {amount && parseFloat(amount) > 0 && sourceCurrency !== destinationCurrency && (
-          <View style={styles.conversionContainer}>
-            <Text style={styles.conversionText}>
-              ≈ {formatCurrency(convertedAmount)} {sourceCurrency}
-            </Text>
-          </View>
-        )}
-
-        {/* Saldo restante - Fuera del contenedor, alineado a la izquierda */}
-        {amount && parseFloat(amount) > 0 && (
-          <View style={styles.remainingBalanceContainer}>
-            <Text style={[
-              styles.remainingBalanceLabel,
-              convertedAmount > sourceBalanceAmount && styles.remainingBalanceError
-            ]}>
-              Saldo restante: {sourceCurrency} {formatCurrency(Math.max(0, sourceBalanceAmount - convertedAmount))}
-              {convertedAmount > sourceBalanceAmount && ' (excede el saldo)'}
-            </Text>
-          </View>
-        )}
-
         {/* Saldo y selector de moneda de partida */}
         <TouchableOpacity
           style={styles.balanceSelector}
@@ -414,7 +513,7 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
           activeOpacity={0.7}
         >
           <View style={styles.balanceInfo}>
-            <Text style={styles.balanceLabel}>Saldo:</Text>
+            <Text style={styles.balanceLabel}>Desde tu cuenta:</Text>
             <Text style={styles.balanceCurrency}>{sourceCurrency}</Text>
             <Text style={styles.balanceAmount}>
               {formatCurrency(sourceBalanceAmount)}
@@ -422,6 +521,33 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
           </View>
           <ChevronDownIcon />
         </TouchableOpacity>
+
+        {/* Saldo restante - Debajo de Saldo */}
+        {amount && parseFloat(amount) > 0 && (
+          <View style={styles.remainingBalanceContainer}>
+            <Text style={styles.remainingBalanceLabel}>
+              Quedarán en tu cuenta:{' '}
+            </Text>
+            <Text style={[
+              styles.remainingBalanceValue,
+              convertedAmount > sourceBalanceAmount && styles.remainingBalanceError
+            ]}>
+              {sourceCurrency} {formatCurrency(Math.max(0, sourceBalanceAmount - convertedAmount))}
+            </Text>
+            {convertedAmount > sourceBalanceAmount && (
+              <Text style={styles.remainingBalanceError}> (excede el saldo)</Text>
+            )}
+          </View>
+        )}
+
+        {/* Conversión - Debajo de saldo restante */}
+        {amount && parseFloat(amount) > 0 && sourceCurrency !== destinationCurrency && (
+          <View style={styles.conversionContainer}>
+            <Text style={styles.conversionText}>
+              ≈ {formatCurrency(convertedAmount)} {sourceCurrency}
+            </Text>
+          </View>
+        )}
 
         {/* Selector de moneda desplegable */}
         {showCurrencyPicker && (
@@ -465,18 +591,11 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
           </View>
         )}
 
-        {/* Botón Continuar */}
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            (!amount || parseFloat(amount) <= 0) && styles.continueButtonDisabled,
-          ]}
-          onPress={handleContinue}
+        {/* Botón Slide para Enviar */}
+        <SlideToSendButton
+          onSend={handleContinue}
           disabled={!amount || parseFloat(amount) <= 0}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.continueButtonText}>Continuar</Text>
-        </TouchableOpacity>
+        />
       </View>
 
       {/* Teclado numérico */}
@@ -686,13 +805,20 @@ const styles = StyleSheet.create({
   remainingBalanceContainer: {
     marginTop: SPACING.sm,
     marginBottom: SPACING.sm,
+    flexDirection: 'row',
     alignItems: 'flex-start', // Alineado a la izquierda
     paddingHorizontal: SPACING.lg, // Mismo padding que el selector de saldo
+    flexWrap: 'wrap', // Permitir que se ajuste si es necesario
   },
   remainingBalanceLabel: {
     fontSize: 12,
     fontFamily: FONTS.inter.regular,
     color: COLORS.textSecondary,
+  },
+  remainingBalanceValue: {
+    fontSize: 12,
+    fontFamily: FONTS.inter.bold,
+    color: '#00FF00', // Verde fluo
   },
   remainingBalanceError: {
     color: '#6B1C2A', // Bordó oscuro en lugar de rojo fuego
@@ -762,21 +888,69 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.inter.bold,
     color: COLORS.primary,
   },
-  continueButton: {
-    backgroundColor: '#000000', // Negro
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: SPACING.md,
-    alignItems: 'center',
+  slideButtonContainer: {
     marginTop: SPACING.md,
+    alignItems: 'center',
   },
-  continueButtonDisabled: {
+  slideButton: {
+    width: SCREEN_WIDTH * 0.88, // Mismo ancho que el buscador
+    height: 56,
+    backgroundColor: '#000000',
+    borderRadius: 28, // 100% redondeado (height / 2)
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  slideButtonDisabled: {
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     opacity: 0.5,
   },
-  continueButtonText: {
-    fontSize: 18,
+  slideProgress: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 28, // 100% redondeado (height / 2)
+  },
+  slideButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    paddingHorizontal: SPACING.lg,
+    position: 'relative',
+    zIndex: 1,
+  },
+  slideButtonTextContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  slideButtonText: {
+    fontSize: 16,
     fontFamily: FONTS.inter.bold,
-    color: COLORS.white, // Texto blanco
+    color: COLORS.white,
+  },
+  slideButtonIconContainer: {
+    position: 'absolute',
+    right: SPACING.lg,
+  },
+  slideThumb: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 56,
+    height: 56,
+    backgroundColor: COLORS.white,
+    borderRadius: 28, // Círculo perfecto (width / 2)
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
   keyboardSafeArea: {
     position: 'absolute',

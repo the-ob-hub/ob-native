@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, Dimensions, Vibration } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Rect } from 'react-native-svg';
 import { COLORS, SPACING, FONTS } from '../constants';
@@ -61,6 +61,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   ];
 
   const handleAvatarLongPress = () => {
+    // Vibración mínima al activar el selector de colores
+    Vibration.vibrate(50);
+    
     if (avatarRef.current) {
       avatarRef.current.measure((x, y, width, height, pageX, pageY) => {
         // Calcular posición del centro del avatar
