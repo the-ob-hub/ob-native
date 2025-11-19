@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { COLORS, SPACING } from '../constants';
 import { RecurrentContactsScroll } from './RecurrentContactsScroll';
 import { ContactSearchBar } from './ContactSearchBar';
@@ -178,29 +178,39 @@ export const TransferContent: React.FC<TransferContentProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Scroll horizontal de contactos recurrentes */}
-      <RecurrentContactsScroll
-        contacts={recentContacts}
-        onContactPress={handleContactPress}
-      />
-
-      {/* Barra de búsqueda */}
-      <ContactSearchBar onSearchChange={handleSearch} />
-
-      {/* Lista vertical de contactos */}
-      {isSearching ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={COLORS.white} />
-        </View>
-      ) : (
-        <ContactList
-          contacts={filteredContacts}
+      {/* Sección fija arriba: contactos recurrentes y buscador */}
+      <View style={styles.fixedHeader}>
+        {/* Scroll horizontal de contactos recurrentes */}
+        <RecurrentContactsScroll
+          contacts={recentContacts}
           onContactPress={handleContactPress}
-          emptyMessage={searchQuery ? 'No se encontraron resultados' : 'No hay contactos disponibles'}
-          onAddContactPress={() => setIsAddContactSheetVisible(true)}
-          showAddButton={searchQuery.trim().length > 0 && filteredContacts.length === 0}
         />
-      )}
+
+        {/* Barra de búsqueda */}
+        <ContactSearchBar onSearchChange={handleSearch} />
+      </View>
+
+      {/* ScrollView solo para la lista de contactos - puede pasar por debajo del buscador */}
+      <ScrollView
+        style={styles.contactsScrollView}
+        contentContainerStyle={styles.contactsScrollContent}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+      >
+        {isSearching ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={COLORS.white} />
+          </View>
+        ) : (
+          <ContactList
+            contacts={filteredContacts}
+            onContactPress={handleContactPress}
+            emptyMessage={searchQuery ? 'No se encontraron resultados' : 'No hay contactos disponibles'}
+            onAddContactPress={() => setIsAddContactSheetVisible(true)}
+            showAddButton={searchQuery.trim().length > 0 && filteredContacts.length === 0}
+          />
+        )}
+      </ScrollView>
 
       {/* Modal para agregar contacto */}
       <AddContactSheet
@@ -215,6 +225,18 @@ export const TransferContent: React.FC<TransferContentProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  fixedHeader: {
+    // Sección fija: contactos recurrentes + buscador
+    zIndex: 10,
+    backgroundColor: 'transparent',
+  },
+  contactsScrollView: {
+    flex: 1,
+    // El scroll puede pasar por debajo del buscador
+  },
+  contactsScrollContent: {
+    paddingBottom: SPACING.xl,
   },
   loadingContainer: {
     minHeight: 200,

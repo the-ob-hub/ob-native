@@ -160,8 +160,9 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingLeft: 0, // Sin padding a la izquierda
-    paddingRight: SPACING.lg,
+    paddingRight: 0, // Sin padding a la derecha - centrado con el balance
     paddingBottom: SPACING.xl,
+    alignItems: 'center', // Centrar los items
   },
   contactItem: {
     flexDirection: 'row',
@@ -170,7 +171,8 @@ const styles = StyleSheet.create({
     paddingRight: SPACING.lg,
     paddingVertical: SPACING.md,
     minHeight: SPACING.md * 2 + 50, // padding vertical + tamaño mínimo del avatar
-    width: SCREEN_WIDTH * 0.9, // 90% del ancho de la pantalla (equivalente a ~360px en iPhone estándar)
+    width: SCREEN_WIDTH * 0.88, // Mismo ancho que el buscador (88%)
+    alignSelf: 'center', // Centrar el item
   },
   contactInfo: {
     flex: 1,

@@ -168,8 +168,8 @@ const getHeightForState = (state: BalanceCardState): number => {
     case BalanceCardState.EXPANDED_HIGH:
       return maxHeight;
     case BalanceCardState.EXPANDED_XXL:
-      // 4 veces el tamaño colapsado + ancho total del celular
-      return (COLLAPSED_HEIGHT * 4) + SCREEN_WIDTH;
+      // Expandir hasta el navBar (usar maxHeight calculado)
+      return maxHeight;
     default:
       return COLLAPSED_HEIGHT;
   }
@@ -494,8 +494,20 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
                     currency={balance.currency}
                     onContactSelect={(contact) => {
                       addLog(`✅ BalanceCard - Contacto seleccionado para transferencia: ${contact.fullName}`);
+                      
+                      // Abrir la pantalla de transferencias inmediatamente
                       if (onContactSelect) {
                         onContactSelect(contact, balance.currency);
+                      }
+                      
+                      // Colapsar el balance en background (sin esperar animación)
+                      setShowExpandedContent(false);
+                      handleStateChange(BalanceCardState.COLLAPSED);
+                      setSelectedAction('');
+                      
+                      // Notificar que ya no está expandido
+                      if (onExpandedChange) {
+                        onExpandedChange(false);
                       }
                     }}
                   />
@@ -513,20 +525,8 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
           cardStyle,
         ]}
       >
-        {isExpandedWithTransfer ? (
-          // Cuando está expandido con transferencia, usar ScrollView unificado
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            nestedScrollEnabled={true}
-          >
-            {cardContent}
-          </ScrollView>
-        ) : (
-          // Cuando no está expandido, renderizar normalmente
-          cardContent
-        )}
+        {/* Renderizar normalmente - el scroll está dentro de TransferContent */}
+        {cardContent}
       </Animated.View>
     );
   };
@@ -663,22 +663,15 @@ const styles = StyleSheet.create({
   expandableArea: {
     flex: 1,
     paddingTop: 0, // Sin padding top cuando el menú está oculto
-    paddingBottom: SPACING.md,
+    paddingBottom: 0, // Sin padding bottom - el scroll está dentro de TransferContent
     position: 'relative',
     zIndex: 1,
+    overflow: 'hidden', // Asegurar que el contenido no se salga del área
   },
   expandableContent: {
     fontSize: 16,
     color: COLORS.textSecondary,
     textAlign: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: SPACING.xl,
-    paddingHorizontal: SPACING.lg,
   },
   indicatorsContainer: {
     flexDirection: 'row',

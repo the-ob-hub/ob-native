@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: SPACING.lg,
     width: '100%',
+    alignItems: 'center', // Centrar el buscador
   },
   searchContainer: {
     flexDirection: 'row',
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
     paddingHorizontal: SPACING.md,
     paddingVertical: Math.round(SPACING.sm * 1.46), // 46% más alto (10% + 10% + 10% + 10% adicional)
-    width: '100%',
+    width: '88%', // 88% de ancho (aumentado 10% desde 80%)
   },
   iconContainer: {
     marginRight: SPACING.sm,
