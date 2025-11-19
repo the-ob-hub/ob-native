@@ -34,6 +34,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const slideAnim = useRef(new Animated.Value(30)).current;
   const avatarRef = useRef<View | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const contentScrollViewRef = useRef<ScrollView>(null);
+  const balanceCardRef = useRef<View | null>(null);
+  const [balanceCardHeight, setBalanceCardHeight] = useState(0);
   const { setShowColorPicker, setAvatarPosition } = useBackgroundColor();
   const { addLog } = useLogs();
 
@@ -237,43 +240,54 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
                 <ColorPickerCircles />
               </View>
             </View>
-            <ScrollView 
-              ref={scrollViewRef}
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              contentInsetAdjustmentBehavior="automatic"
-              bounces={!isBalanceExpanded}
-              scrollEnabled={!isBalanceExpanded}
-              alwaysBounceVertical={!isBalanceExpanded}
-              contentInset={{ top: 0, bottom: 0 }}
-              contentOffset={{ x: 0, y: 0 }}
-            >
+            <View style={styles.mainContentContainer}>
               <View style={styles.headerSpacer} />
-                      <BalanceCard 
-                        balances={balances.length > 0 ? balances : getMockBalances()} 
-                        onExpandedChange={setIsBalanceExpanded}
-                        onContactSelect={(contact, currency) => {
-                          addLog(`✅ HomeScreen - Contacto seleccionado para transferencia: ${contact.fullName}, moneda destino: ${currency}`);
-                          setSelectedContact(contact);
-                          setTransferDestinationCurrency(currency);
-                          setShowTransferScreen(true);
-                        }}
-                      />
-              {!isBalanceExpanded && (
-                <>
-                  <View style={styles.emptyCard}>
-                    <Text style={styles.cardTitle}>Movimientos Unificados</Text>
-                  </View>
-                  <View style={styles.debugBelowCard}>
-                    <Text style={styles.cardTitle}>Pago de servicios</Text>
-                  </View>
-                  <View style={styles.debugBelowCardDarker}>
-                    <Text style={styles.cardTitle}>Promociones ofertas y descuentos</Text>
-                  </View>
-                </>
-              )}
-            </ScrollView>
+              <View 
+                ref={balanceCardRef}
+                onLayout={(event) => {
+                  const { height } = event.nativeEvent.layout;
+                  setBalanceCardHeight(height);
+                }}
+              >
+                <BalanceCard 
+                  balances={balances.length > 0 ? balances : getMockBalances()} 
+                  onExpandedChange={setIsBalanceExpanded}
+                  onContactSelect={(contact, currency) => {
+                    addLog(`✅ HomeScreen - Contacto seleccionado para transferencia: ${contact.fullName}, moneda destino: ${currency}`);
+                    setSelectedContact(contact);
+                    setTransferDestinationCurrency(currency);
+                    setShowTransferScreen(true);
+                  }}
+                />
+              </View>
+              
+              {/* ScrollView independiente para los contenedores - puede hacer scroll por debajo del balance */}
+              <ScrollView
+                ref={contentScrollViewRef}
+                style={[
+                  styles.contentScrollView,
+                  { 
+                    top: balanceCardHeight + 63, // headerSpacer height (63) + balanceCard height dinámico
+                    height: SCREEN_HEIGHT - (balanceCardHeight + 63) // Altura disponible desde balance hasta abajo
+                  }
+                ]}
+                contentContainerStyle={styles.contentScrollContent}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={true}
+                bounces={true}
+                nestedScrollEnabled={true}
+              >
+                <View style={styles.emptyCard}>
+                  <Text style={styles.cardTitle}>Movimientos Unificados</Text>
+                </View>
+                <View style={styles.debugBelowCard}>
+                  <Text style={styles.cardTitle}>Pago de servicios</Text>
+                </View>
+                <View style={styles.debugBelowCardDarker}>
+                  <Text style={styles.cardTitle}>Promociones ofertas y descuentos</Text>
+                </View>
+              </ScrollView>
+            </View>
           </Animated.View>
 
           <ProfileSheet
@@ -327,22 +341,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
   },
-  scrollView: {
+  mainContentContainer: {
     flex: 1,
-    backgroundColor: 'transparent', // Layer 5: ScrollView - Transparente
+    backgroundColor: 'transparent',
   },
-  scrollContent: {
-    paddingBottom: SPACING.xl,
+  contentScrollView: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+  },
+  contentScrollContent: {
+    paddingBottom: SPACING.xl * 2,
     backgroundColor: 'transparent',
   },
   headerSpacer: {
-    height: 60, // Solo el paddingTop del header (60px) para que el BalanceCard quede más arriba
+    height: 63, // Aumentado 5% (60 * 1.05 = 63) para bajar el BalanceCard
   },
   header: {
     paddingTop: 60,
     paddingBottom: SPACING.lg,
     paddingHorizontal: SPACING.lg,
-    backgroundColor: '#000000', // Negro pleno
+    backgroundColor: 'transparent', // 100% transparente
     borderBottomWidth: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -369,7 +390,7 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     width: '95%',
-    height: 150,
+    height: 180, // Aumentado 20% (150 * 1.2 = 180)
     backgroundColor: '#00FFFF', // Layer 6: Movimientos Unificados - CYAN
     borderRadius: 24,
     alignSelf: 'center',
