@@ -185,7 +185,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-          <Text style={styles.versionBadgeText}>v1.79</Text>
+          <Text style={styles.versionBadgeText}>v1.80</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}

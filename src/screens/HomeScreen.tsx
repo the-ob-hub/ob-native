@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Rect } from 'react-native-svg';
 import { COLORS, SPACING, FONTS } from '../constants';
 import { SkeletonScreen } from '../components/SkeletonScreen';
 import { UserAvatar } from '../components/UserAvatar';
@@ -13,6 +14,8 @@ import { UserContact } from '../models/contacts';
 import { db } from '../data/database';
 import { useBackgroundColor } from '../contexts/BackgroundColorContext';
 import { useLogs } from '../contexts/LogContext';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface HomeScreenProps {
   onLogout?: () => void;
@@ -185,8 +188,35 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
         <SkeletonScreen />
       ) : (
         <>
-          {/* Fondo negro absoluto para pull-to-refresh */}
-          <View style={styles.blackBackground} />
+          {/* Layer 3: Gradiente SVG - Negro hasta 70%, luego transición a transparencia hasta 90%, transparente del 90% al 100% */}
+          <Svg
+            width={SCREEN_WIDTH}
+            height={SCREEN_HEIGHT}
+            style={styles.gradientBackground}
+          >
+            <Defs>
+              <SvgLinearGradient 
+                id="blackToTransparentGradient" 
+                x1="0%" 
+                y1="0%" 
+                x2="0%" 
+                y2="100%"
+              >
+                <Stop offset="0%" stopColor="#000000" stopOpacity="1" />
+                <Stop offset="70%" stopColor="#000000" stopOpacity="1" />
+                <Stop offset="70%" stopColor="#000000" stopOpacity="1" />
+                <Stop offset="90%" stopColor="#000000" stopOpacity="0" />
+                <Stop offset="100%" stopColor="#000000" stopOpacity="0" />
+              </SvgLinearGradient>
+            </Defs>
+            <Rect
+              x="0"
+              y="0"
+              width={SCREEN_WIDTH}
+              height={SCREEN_HEIGHT}
+              fill="url(#blackToTransparentGradient)"
+            />
+          </Svg>
           
           <Animated.View
             style={[
@@ -231,9 +261,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
                         }}
                       />
               {!isBalanceExpanded && (
-                <View style={styles.emptyCard}>
-                  <Text style={styles.cardTitle}>Movimientos Unificados</Text>
-                </View>
+                <>
+                  <View style={styles.emptyCard}>
+                    <Text style={styles.cardTitle}>Movimientos Unificados</Text>
+                  </View>
+                  <View style={styles.debugBelowCard}>
+                    <Text style={styles.cardTitle}>Pago de servicios</Text>
+                  </View>
+                  <View style={styles.debugBelowCardDarker}>
+                    <Text style={styles.cardTitle}>Promociones ofertas y descuentos</Text>
+                  </View>
+                </>
               )}
             </ScrollView>
           </Animated.View>
@@ -274,16 +312,16 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#000000', // Fondo negro para pull-to-refresh
+    backgroundColor: 'transparent', // Layer 1: Container HomeScreen - Transparente
   },
-  blackBackground: {
+  gradientBackground: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#000000',
     zIndex: 0,
+    backgroundColor: 'transparent', // Layer 3: Gradiente SVG - Transparente para ver el background seleccionable
   },
   content: {
     flex: 1,
@@ -291,7 +329,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: 'transparent', // Layer 5: ScrollView - Transparente
   },
   scrollContent: {
     paddingBottom: SPACING.xl,
@@ -331,8 +369,8 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     width: '95%',
-    height: 300,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Negro 70% transparente (30% opacidad)
+    height: 150,
+    backgroundColor: '#00FFFF', // Layer 6: Movimientos Unificados - CYAN
     borderRadius: 24,
     alignSelf: 'center',
     marginTop: SPACING.xl,
@@ -344,6 +382,28 @@ const styles = StyleSheet.create({
     fontSize: 18, // Un poco más chico que 20px
     fontFamily: FONTS.poppins.bold,
     color: '#6E6E6E',
+  },
+  debugBelowCard: {
+    width: '95%',
+    height: 150,
+    backgroundColor: '#FFA500', // Layer 7: Debug Below Card 1 - NARANJA
+    borderRadius: 24,
+    alignSelf: 'center',
+    marginTop: SPACING.xl,
+    padding: SPACING.lg,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+  },
+  debugBelowCardDarker: {
+    width: '95%',
+    height: 150,
+    backgroundColor: '#800080', // Layer 8: Debug Below Card 2 - PURPURA
+    borderRadius: 24,
+    alignSelf: 'center',
+    marginTop: SPACING.xl,
+    padding: SPACING.lg,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
 });
 
