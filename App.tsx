@@ -89,28 +89,47 @@ function App() {
   };
 
   const handleLoginSuccess = async () => {
-    logger.log(`✅ App - handleLoginSuccess() - Login exitoso, guardando datos del usuario`);
+    logger.log(`✅ App - handleLoginSuccess() - ========== INICIO POST-LOGIN ==========`);
+    logger.log(`⏰ App - handleLoginSuccess() - Timestamp: ${new Date().toISOString()}`);
     
     try {
+      // Verificar que el JWT esté guardado
+      const jwtToken = await AsyncStorage.getItem('jwt_token');
+      if (jwtToken) {
+        logger.log(`✅ App - handleLoginSuccess() - JWT encontrado en AsyncStorage (length: ${jwtToken.length})`);
+      } else {
+        logger.log(`⚠️ App - handleLoginSuccess() - JWT NO encontrado en AsyncStorage`);
+      }
+      
       // Obtener atributos del usuario de Cognito
+      // getUserAttributes ahora maneja internamente la obtención de la sesión
+      logger.log(`👤 App - handleLoginSuccess() - Obteniendo atributos del usuario...`);
       const attributes = await cognitoService.getUserAttributes();
       
       if (attributes) {
-        logger.log(`👤 App - handleLoginSuccess() - Atributos obtenidos: ${Object.keys(attributes).join(', ')}`);
+        logger.log(`✅ App - handleLoginSuccess() - Atributos obtenidos: ${Object.keys(attributes).join(', ')}`);
         
-        // Usar email como ID del usuario para consistencia (igual que en registro)
+        // Obtener UUID del usuario (sub de Cognito) para el backend
         const email = attributes.email || '';
-        const userId = email || attributes.sub || attributes['cognito:username'] || 'unknown';
+        const userIdUUID = attributes.sub || attributes['cognito:username'] || 'unknown'; // UUID para backend
+        const userIdEmail = email || userIdUUID; // Email para base de datos local
         const fullName = attributes.name || '';
         const phone = attributes.phone_number || '';
         const birthDate = attributes.birthdate || '';
         
-        logger.log(`👤 App - handleLoginSuccess() - UserId: ${userId}`);
+        logger.log(`👤 App - handleLoginSuccess() - UserId UUID (sub): ${userIdUUID}`);
+        logger.log(`👤 App - handleLoginSuccess() - UserId Email: ${userIdEmail}`);
         logger.log(`📧 App - handleLoginSuccess() - Email: ${email}`);
+        logger.log(`👤 App - handleLoginSuccess() - FullName: ${fullName || 'N/A'}`);
+        logger.log(`📱 App - handleLoginSuccess() - Phone: ${phone || 'N/A'}`);
         
-        // Guardar userId en AsyncStorage (usando email para consistencia)
-        await AsyncStorage.setItem('currentUserId', userId);
-        logger.log(`💾 App - handleLoginSuccess() - UserId guardado en AsyncStorage: ${userId}`);
+        // Guardar UUID en AsyncStorage para llamadas al backend
+        await AsyncStorage.setItem('currentUserId', userIdUUID);
+        logger.log(`💾 App - handleLoginSuccess() - UserId UUID guardado en AsyncStorage: ${userIdUUID}`);
+        
+        // Guardar también el email para referencia local
+        await AsyncStorage.setItem('currentUserEmail', userIdEmail);
+        logger.log(`💾 App - handleLoginSuccess() - UserId Email guardado en AsyncStorage: ${userIdEmail}`);
         
         // Inicializar base de datos y guardar usuario
         try {
@@ -131,12 +150,12 @@ function App() {
             }
           }
           
-          // Verificar si el usuario ya existe
-          const existingUser = await db.getUser(userId);
+          // Verificar si el usuario ya existe (usar email como ID para DB local)
+          const existingUser = await db.getUser(userIdEmail);
           
           if (existingUser) {
             // Actualizar usuario existente
-            await db.updateUser(userId, {
+            await db.updateUser(userIdEmail, {
               email: email,
               fullName: fullName,
               phone: phone,
@@ -148,7 +167,7 @@ function App() {
           } else {
             // Crear nuevo usuario
             const userData = {
-              id: userId,
+              id: userIdEmail, // Usar email como ID para DB local
               email: email,
               fullName: fullName,
               phone: phone,
@@ -177,10 +196,12 @@ function App() {
       }
     } catch (error: any) {
       logger.error(`❌ App - handleLoginSuccess() - Error guardando datos del usuario: ${error.message}`);
+      logger.error(`❌ App - handleLoginSuccess() - Error stack: ${error.stack || 'N/A'}`);
       // Continuar navegando aunque falle
     }
     
     logger.log(`📱 App - handleLoginSuccess() - Navegando a MainTabs`);
+    logger.log(`✅ App - handleLoginSuccess() - ========== FIN POST-LOGIN ==========`);
     setCurrentScreen('main');
   };
 

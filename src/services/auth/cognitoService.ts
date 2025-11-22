@@ -8,6 +8,7 @@ import {
   AuthenticationDetails,
   CognitoUserAttribute,
 } from 'amazon-cognito-identity-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../../utils/logger';
 
 // Configuración del User Pool (debe coincidir con el código de referencia)
@@ -88,6 +89,30 @@ class CognitoAuthService {
           logger.log(`🔑 CognitoService.signIn() - ID Token obtenido (length: ${idToken.length})`);
           logger.log(`🔑 CognitoService.signIn() - Access Token obtenido (length: ${accessToken.length})`);
           logger.log(`🔑 CognitoService.signIn() - Refresh Token obtenido (length: ${refreshToken.length})`);
+          
+          // Persistir el JWT (idToken) en AsyncStorage
+          logger.log(`💾 CognitoService.signIn() - Guardando JWT en AsyncStorage...`);
+          AsyncStorage.setItem('jwt_token', idToken)
+            .then(() => {
+              logger.log(`✅ CognitoService.signIn() - JWT guardado exitosamente en AsyncStorage`);
+              // Verificar que se guardó correctamente
+              AsyncStorage.getItem('jwt_token')
+                .then((savedToken) => {
+                  if (savedToken === idToken) {
+                    logger.log(`✅ CognitoService.signIn() - JWT verificado correctamente (length: ${savedToken.length})`);
+                  } else {
+                    logger.error(`❌ CognitoService.signIn() - JWT no coincide después de guardar`);
+                  }
+                })
+                .catch((err) => {
+                  logger.error(`❌ CognitoService.signIn() - Error verificando JWT: ${err.message}`);
+                });
+            })
+            .catch((err) => {
+              logger.error(`❌ CognitoService.signIn() - Error guardando JWT: ${err.message}`);
+              logger.error(`❌ CognitoService.signIn() - Error stack: ${err.stack || 'N/A'}`);
+            });
+          
           logger.log(`✅ CognitoService.signIn() - Login exitoso`);
           
           resolve({
@@ -249,8 +274,36 @@ class CognitoAuthService {
       } else {
         logger.log(`⚠️ CognitoService.signOut() - No hay usuario activo para cerrar sesión`);
       }
+      
+      // Eliminar JWT de AsyncStorage
+      AsyncStorage.removeItem('jwt_token')
+        .then(() => {
+          logger.log(`🗑️ CognitoService.signOut() - JWT eliminado de AsyncStorage`);
+        })
+        .catch((err) => {
+          logger.error(`❌ CognitoService.signOut() - Error eliminando JWT: ${err.message}`);
+        });
+      
       resolve();
     });
+  }
+  
+  /**
+   * Obtener el JWT token almacenado
+   */
+  async getJwtToken(): Promise<string | null> {
+    try {
+      const token = await AsyncStorage.getItem('jwt_token');
+      if (token) {
+        logger.log(`🔑 CognitoService.getJwtToken() - JWT obtenido de AsyncStorage (length: ${token.length})`);
+      } else {
+        logger.log(`⚠️ CognitoService.getJwtToken() - No hay JWT en AsyncStorage`);
+      }
+      return token;
+    } catch (error: any) {
+      logger.error(`❌ CognitoService.getJwtToken() - Error obteniendo JWT: ${error.message}`);
+      return null;
+    }
   }
 
   /**
@@ -262,10 +315,12 @@ class CognitoAuthService {
 
   /**
    * Obtener atributos del usuario actual desde Cognito
+   * Primero verifica/obtiene la sesión para asegurar que el usuario está autenticado
    */
-  async getUserAttributes(): Promise<{ [key: string]: string } | null> {
+  async getUserAttributes(cognitoUserParam?: CognitoUser): Promise<{ [key: string]: string } | null> {
     return new Promise((resolve) => {
-      const cognitoUser = userPool.getCurrentUser();
+      // Usar el cognitoUser pasado como parámetro o obtener el actual
+      const cognitoUser = cognitoUserParam || userPool.getCurrentUser();
       
       if (!cognitoUser) {
         logger.log(`⚠️ CognitoService.getUserAttributes() - No hay usuario actual`);
@@ -273,28 +328,49 @@ class CognitoAuthService {
         return;
       }
 
-      logger.log(`👤 CognitoService.getUserAttributes() - Obteniendo atributos del usuario`);
-      cognitoUser.getUserAttributes((err, attributes) => {
-        if (err) {
-          logger.error(`❌ CognitoService.getUserAttributes() - Error: ${err.message}`);
+      logger.log(`👤 CognitoService.getUserAttributes() - Usuario encontrado, verificando sesión...`);
+      
+      // Primero obtener la sesión para asegurar que el usuario está autenticado
+      cognitoUser.getSession((sessionErr: Error | null, session: any) => {
+        if (sessionErr) {
+          logger.error(`❌ CognitoService.getUserAttributes() - Error al obtener sesión: ${sessionErr.message}`);
+          logger.error(`❌ CognitoService.getUserAttributes() - Error completo: ${JSON.stringify(sessionErr)}`);
           resolve(null);
           return;
         }
 
-        if (!attributes) {
-          logger.log(`⚠️ CognitoService.getUserAttributes() - No se encontraron atributos`);
+        if (!session || !session.isValid()) {
+          logger.error(`❌ CognitoService.getUserAttributes() - Sesión inválida o no disponible`);
           resolve(null);
           return;
         }
 
-        // Convertir array de atributos a objeto
-        const attributesObj: { [key: string]: string } = {};
-        attributes.forEach((attr) => {
-          attributesObj[attr.Name] = attr.Value;
+        logger.log(`✅ CognitoService.getUserAttributes() - Sesión válida, obteniendo atributos...`);
+        
+        // Ahora obtener los atributos del usuario
+        cognitoUser.getUserAttributes((err, attributes) => {
+          if (err) {
+            logger.error(`❌ CognitoService.getUserAttributes() - Error: ${err.message}`);
+            logger.error(`❌ CognitoService.getUserAttributes() - Error completo: ${JSON.stringify(err)}`);
+            resolve(null);
+            return;
+          }
+
+          if (!attributes) {
+            logger.log(`⚠️ CognitoService.getUserAttributes() - No se encontraron atributos`);
+            resolve(null);
+            return;
+          }
+
+          // Convertir array de atributos a objeto
+          const attributesObj: { [key: string]: string } = {};
+          attributes.forEach((attr) => {
+            attributesObj[attr.Name] = attr.Value;
+          });
+
+          logger.log(`✅ CognitoService.getUserAttributes() - Atributos obtenidos: ${Object.keys(attributesObj).join(', ')}`);
+          resolve(attributesObj);
         });
-
-        logger.log(`✅ CognitoService.getUserAttributes() - Atributos obtenidos: ${Object.keys(attributesObj).join(', ')}`);
-        resolve(attributesObj);
       });
     });
   }
@@ -347,6 +423,15 @@ class CognitoAuthService {
         logger.log(`🔑 CognitoService.getCurrentSession() - ID Token obtenido (length: ${idToken.length})`);
         logger.log(`🔑 CognitoService.getCurrentSession() - Access Token obtenido (length: ${accessToken.length})`);
         logger.log(`🔑 CognitoService.getCurrentSession() - Refresh Token obtenido (length: ${refreshToken.length})`);
+        
+        // Persistir el JWT (idToken) en AsyncStorage
+        AsyncStorage.setItem('jwt_token', idToken)
+          .then(() => {
+            logger.log(`💾 CognitoService.getCurrentSession() - JWT guardado en AsyncStorage`);
+          })
+          .catch((err) => {
+            logger.error(`❌ CognitoService.getCurrentSession() - Error guardando JWT: ${err.message}`);
+          });
         
         resolve({
           success: true,

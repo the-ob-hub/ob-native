@@ -2,6 +2,7 @@
  * Configuración base para llamadas API
  */
 import { logger } from '../../utils/logger';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base URL del backend real
 const BASE_URL = 'http://ec2-34-224-57-79.compute-1.amazonaws.com:3000';
@@ -26,6 +27,28 @@ class ApiClient {
   }
 
   /**
+   * Obtiene el JWT token de AsyncStorage
+   */
+  private async getJwtToken(): Promise<string | null> {
+    try {
+      const token = await AsyncStorage.getItem('jwt_token');
+      if (token) {
+        logger.log(`🔑 ApiClient.getJwtToken() - JWT obtenido de AsyncStorage (length: ${token.length})`);
+        // Log preview del token para debugging
+        const tokenPreview = token.substring(0, 30);
+        logger.log(`🔍 ApiClient.getJwtToken() - JWT preview: ${tokenPreview}...`);
+      } else {
+        logger.log(`⚠️ ApiClient.getJwtToken() - No hay JWT disponible en AsyncStorage`);
+      }
+      return token;
+    } catch (error: any) {
+      logger.error(`❌ ApiClient.getJwtToken() - Error obteniendo JWT: ${error.message}`);
+      logger.error(`❌ ApiClient.getJwtToken() - Error stack: ${error.stack || 'N/A'}`);
+      return null;
+    }
+  }
+
+  /**
    * Realiza una petición HTTP
    */
   async request<T>(
@@ -34,6 +57,22 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     const method = options.method || 'GET';
+    
+    // Obtener JWT token y agregarlo a los headers
+    const jwtToken = await this.getJwtToken();
+    const headers: Record<string, string> = {
+      ...this.defaultHeaders,
+      ...options.headers,
+    };
+    
+    // Agregar Authorization header si hay JWT
+    if (jwtToken) {
+      headers['Authorization'] = `Bearer ${jwtToken}`;
+      logger.log(`🔐 ApiClient.request() - Authorization header agregado con JWT`);
+      logger.log(`🔍 ApiClient.request() - Header Authorization: Bearer ${jwtToken.substring(0, 30)}...`);
+    } else {
+      logger.log(`⚠️ ApiClient.request() - No se agregó Authorization header (no hay JWT disponible)`);
+    }
     
     // Log de request
     const logRequest = `🌐 API ${method} ${endpoint}`;
@@ -49,10 +88,7 @@ class ApiClient {
     try {
       const response = await fetch(url, {
         ...options,
-        headers: {
-          ...this.defaultHeaders,
-          ...options.headers,
-        },
+        headers,
       });
 
       // Log de response

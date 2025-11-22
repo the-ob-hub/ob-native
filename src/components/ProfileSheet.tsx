@@ -123,7 +123,9 @@ export const ProfileSheet: React.FC<ProfileSheetProps> = ({ visible, onClose, us
     return names[0][0].toUpperCase();
   };
 
-  // Generar CBU/CVU de ejemplo (en producción vendría del backend)
+  // TODO: Obtener alias y CBU/CVU del backend cuando esté disponible
+  // PROPUESTA BACKEND: Agregar campos 'alias' y 'cbu' o 'cvu' al modelo User
+  // Por ahora están hardcodeados como valores de ejemplo
   const cbu = '0000003100010000000001';
   const alias = 'onda.user.bank';
 

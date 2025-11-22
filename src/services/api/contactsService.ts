@@ -1,7 +1,7 @@
 /**
  * Contacts Service
  * Servicio para manejar contactos del usuario (agenda personal)
- * Por ahora usa datos mock, luego se conectará a la API real
+ * Por ahora usa datos mock, luego se conectará a la API real usando apiClient
  */
 
 import { 
@@ -11,6 +11,7 @@ import {
   UserContact 
 } from '../../models/contacts';
 import { logger } from '../../utils/logger';
+import { apiClient } from './base';
 
 // Importar JSONs mock
 import recentContactsMock from '../../mocks/recentContacts.json';

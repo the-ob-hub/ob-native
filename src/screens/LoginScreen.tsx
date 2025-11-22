@@ -41,7 +41,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
     }
 
     setIsLoading(true);
-    addLog(`🔐 LoginScreen - Iniciando login para: ${email.trim()}`);
+    const startTime = Date.now();
+    addLog(`🔐 LoginScreen - ========== INICIO LOGIN ==========`);
+    addLog(`📧 LoginScreen - Email: ${email.trim()}`);
+    addLog(`🔑 LoginScreen - Password length: ${password.length} caracteres`);
+    addLog(`⏰ LoginScreen - Timestamp: ${new Date().toISOString()}`);
 
     try {
       const credentials: LoginCredentials = {
@@ -53,26 +57,41 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
       const result = await cognitoService.signIn(credentials);
 
       if (result.success) {
-        addLog('✅ LoginScreen - Login exitoso');
+        const elapsedTime = Date.now() - startTime;
+        addLog(`✅ LoginScreen - Login exitoso (${elapsedTime}ms)`);
         addLog(`🎫 LoginScreen - Tokens recibidos: ${result.tokens ? 'Sí' : 'No'}`);
+        
         if (result.tokens) {
-          addLog(`🔑 LoginScreen - ID Token length: ${result.tokens.idToken.length}`);
-          addLog(`🔑 LoginScreen - Access Token length: ${result.tokens.accessToken.length}`);
-          addLog(`🔑 LoginScreen - Refresh Token length: ${result.tokens.refreshToken.length}`);
+          addLog(`🔑 LoginScreen - ID Token (JWT) length: ${result.tokens.idToken.length} caracteres`);
+          addLog(`🔑 LoginScreen - Access Token length: ${result.tokens.accessToken.length} caracteres`);
+          addLog(`🔑 LoginScreen - Refresh Token length: ${result.tokens.refreshToken.length} caracteres`);
+          
+          // Log del inicio del JWT (primeros 50 caracteres) para verificar formato
+          const jwtPreview = result.tokens.idToken.substring(0, 50);
+          addLog(`🔍 LoginScreen - JWT preview: ${jwtPreview}...`);
+          
+          // Verificar que el JWT se guardó correctamente
+          addLog(`💾 LoginScreen - Verificando persistencia del JWT...`);
         }
+        
+        addLog(`📱 LoginScreen - Llamando onLoginSuccess()`);
         onLoginSuccess();
       } else {
-        addLog(`❌ LoginScreen - Login fallido: ${result.message || 'Error desconocido'}`);
+        const elapsedTime = Date.now() - startTime;
+        addLog(`❌ LoginScreen - Login fallido después de ${elapsedTime}ms`);
+        addLog(`❌ LoginScreen - Error: ${result.message || 'Error desconocido'}`);
         Alert.alert('Error', result.message || 'Error al iniciar sesión');
       }
     } catch (error: any) {
-      const errorMsg = `❌ LoginScreen - Error en login: ${error.message || String(error)}`;
+      const elapsedTime = Date.now() - startTime;
+      const errorMsg = `❌ LoginScreen - Error después de ${elapsedTime}ms: ${error.message || String(error)}`;
       addLog(errorMsg);
+      addLog(`❌ LoginScreen - Error stack: ${error.stack || 'N/A'}`);
       console.error('❌ Error en login:', error);
       Alert.alert('Error', error.message || 'Error al iniciar sesión');
     } finally {
       setIsLoading(false);
-      addLog('🏁 LoginScreen - Proceso de login finalizado');
+      addLog(`🏁 LoginScreen - ========== FIN LOGIN ==========`);
     }
   };
 
@@ -185,7 +204,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-          <Text style={styles.versionBadgeText}>v1.83</Text>
+          <Text style={styles.versionBadgeText}>v1.86</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}

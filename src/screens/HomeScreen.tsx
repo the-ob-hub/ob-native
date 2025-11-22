@@ -14,6 +14,8 @@ import { UserContact } from '../models/contacts';
 import { db } from '../data/database';
 import { useBackgroundColor } from '../contexts/BackgroundColorContext';
 import { useLogs } from '../contexts/LogContext';
+import { balanceService } from '../services/api/balanceService';
+import { userService } from '../services/api/userService';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -93,15 +95,40 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
 
   const loadBalances = async () => {
     try {
-      // TODO: Implementar llamada al backend
-      // const balancesData = await balanceService.getBalances(userId);
-      // setBalances(balancesData.balances);
+      addLog('💰 HomeScreen - Cargando balances del backend...');
       
-      // Por ahora usar mock
-      setBalances(getMockBalances());
-    } catch (error) {
+      // Obtener userId (UUID) de AsyncStorage
+      const userId = await AsyncStorage.getItem('currentUserId');
+      
+      if (!userId) {
+        addLog('⚠️ HomeScreen - No hay userId en AsyncStorage, usando mock');
+        setBalances(getMockBalances());
+        return;
+      }
+      
+      addLog(`👤 HomeScreen - UserId obtenido: ${userId}`);
+      
+      // Llamar al backend
+      addLog('📤 HomeScreen - Llamando balanceService.getBalances()');
+      const balancesData = await balanceService.getBalances(userId);
+      
+      if (balancesData.balances && balancesData.balances.length > 0) {
+        addLog(`✅ HomeScreen - Balances obtenidos: ${balancesData.balances.length}`);
+        balancesData.balances.forEach((balance, index) => {
+          addLog(`  ${index + 1}. ${balance.currency}: ${balance.amount}`);
+        });
+        setBalances(balancesData.balances);
+      } else {
+        addLog('⚠️ HomeScreen - No hay balances, usando mock');
+        setBalances(getMockBalances());
+      }
+    } catch (error: any) {
+      const errorMsg = `❌ HomeScreen - Error cargando balances: ${error.message || String(error)}`;
+      addLog(errorMsg);
       console.error('❌ Error cargando balances:', error);
+      
       // Fallback a mock en caso de error
+      addLog('🔄 HomeScreen - Usando balances mock como fallback');
       setBalances(getMockBalances());
     }
   };
@@ -109,41 +136,81 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const loadUserData = async () => {
     try {
       setIsLoading(true);
+      addLog('👤 HomeScreen - Cargando datos del usuario...');
 
       // Inicializar la base de datos si no está inicializada
       try {
         await db.init();
-        console.log('✅ Base de datos inicializada');
+        addLog('✅ HomeScreen - Base de datos inicializada');
       } catch (dbError) {
-        console.log('⚠️ Error inicializando base de datos, continuando con datos mock:', dbError);
+        addLog(`⚠️ HomeScreen - Error inicializando base de datos: ${dbError}`);
       }
 
-      // Obtener userId de AsyncStorage
+      // Obtener userId (UUID) de AsyncStorage
       const userId = await AsyncStorage.getItem('currentUserId');
       
-      if (userId) {
-        console.log('📱 Cargando datos del usuario:', userId);
+      if (!userId) {
+        addLog('⚠️ HomeScreen - No hay userId en AsyncStorage, usando datos mock');
+        setCurrentUser(getMockUser());
+        return;
+      }
+
+      addLog(`👤 HomeScreen - UserId obtenido: ${userId}`);
+      
+      try {
+        // Intentar obtener datos del usuario desde el backend
+        addLog('📤 HomeScreen - Llamando userService.getUserById()');
+        const userData = await userService.getUserById(userId);
         
-        try {
-          // Obtener datos del usuario desde la base de datos
-          const userData = await db.getUser(userId);
+        if (userData) {
+          addLog(`✅ HomeScreen - Usuario obtenido del backend: ${userData.fullName}`);
+          addLog(`📧 HomeScreen - Email: ${userData.email}`);
+          addLog(`📱 HomeScreen - Phone: ${userData.phone || 'N/A'}`);
+          setCurrentUser(userData);
           
-          if (userData) {
-            console.log('✅ Datos del usuario cargados:', userData);
-            setCurrentUser(userData);
-          } else {
-            console.log('⚠️ No se encontró el usuario, usando datos mock');
-            setCurrentUser(getMockUser());
+          // También guardar en la base de datos local como caché
+          try {
+            const userEmail = userData.email || userId;
+            const existingUser = await db.getUser(userEmail);
+            if (existingUser) {
+              await db.updateUser(userEmail, userData);
+              addLog('💾 HomeScreen - Usuario actualizado en base de datos local');
+            } else {
+              await db.createUser({
+                ...userData,
+                id: userEmail, // Usar email como ID para DB local
+              });
+              addLog('💾 HomeScreen - Usuario guardado en base de datos local');
+            }
+          } catch (dbError) {
+            addLog(`⚠️ HomeScreen - Error guardando en DB local: ${dbError}`);
+            // Continuar aunque falle la DB local
           }
-        } catch (dbError) {
-          console.log('⚠️ Error obteniendo usuario de la base de datos, usando datos mock:', dbError);
+        } else {
+          throw new Error('Usuario no encontrado en el backend');
+        }
+      } catch (backendError: any) {
+        addLog(`⚠️ HomeScreen - Error obteniendo usuario del backend: ${backendError.message}`);
+        
+        // Fallback: intentar obtener de la base de datos local
+        try {
+          const userEmail = await AsyncStorage.getItem('currentUserEmail') || userId;
+          const localUserData = await db.getUser(userEmail);
+          
+          if (localUserData) {
+            addLog('✅ HomeScreen - Usuario obtenido de base de datos local (fallback)');
+            setCurrentUser(localUserData);
+          } else {
+            throw new Error('Usuario no encontrado en DB local');
+          }
+        } catch (localError) {
+          addLog('⚠️ HomeScreen - Usuario no encontrado en DB local, usando datos mock');
           setCurrentUser(getMockUser());
         }
-      } else {
-        console.log('⚠️ No hay userId en AsyncStorage, usando datos mock');
-        setCurrentUser(getMockUser());
       }
-    } catch (error) {
+    } catch (error: any) {
+      const errorMsg = `❌ HomeScreen - Error en loadUserData: ${error.message || String(error)}`;
+      addLog(errorMsg);
       console.error('❌ Error en loadUserData:', error);
       setCurrentUser(getMockUser());
     } finally {

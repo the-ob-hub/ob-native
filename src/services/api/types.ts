@@ -56,3 +56,64 @@ export interface Inventory {
   [key: string]: number; // Map de status a cantidad
 }
 
+/**
+ * Tipos para la respuesta del Backend (Go)
+ */
+
+// Balance tal como lo devuelve el backend
+export interface BackendBalance {
+  id: string;
+  userId: string;
+  assetCode: string; // "USD" | "UYU" | "USDc"
+  availableBalance: string; // Decimal como string
+  pendingBalance: string;
+  totalBalance: string;
+  assetType: string; // "fiat" | "crypto"
+  accountType: string; // "main"
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Respuesta del backend para balances
+export interface BackendBalancesResponse {
+  success: boolean;
+  data: BackendBalance[];
+  error?: string;
+}
+
+/**
+ * Tipos para la respuesta del Backend de Usuario (Go)
+ */
+
+// Usuario tal como lo devuelve el backend
+export interface BackendUser {
+  id: string;
+  fullName: string;
+  documentType: string;
+  documentNumber: string;
+  birthDate: string; // ISO date string
+  nationality: string;
+  email: string;
+  phone: string;
+  addressStreet?: string;
+  addressCity?: string;
+  addressState?: string;
+  addressCountry: string;
+  addressPostalCode?: string;
+  countryOfResidence: string;
+  countryOfFundsOrigin: string;
+  isPEP: boolean;
+  pepDetails?: string;
+  status: string;
+  identityPendingManualReview: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Respuesta del backend para usuario
+export interface BackendUserResponse {
+  success: boolean;
+  data: BackendUser;
+  error?: string;
+}
+
