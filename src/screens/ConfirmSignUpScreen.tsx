@@ -205,7 +205,7 @@ export const ConfirmSignUpScreen: React.FC<ConfirmSignUpScreenProps> = ({
           onPress={() => setIsLogViewerVisible(true)}
           activeOpacity={0.7}
         >
-          <Text style={styles.versionBadgeText}>v1.89</Text>
+          <Text style={styles.versionBadgeText}>v1.90</Text>
         </TouchableOpacity>
 
         {/* LogViewer */}
