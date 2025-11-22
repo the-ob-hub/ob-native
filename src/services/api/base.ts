@@ -86,10 +86,21 @@ class ApiClient {
     }
 
     try {
+      logger.log(`🌐 ApiClient.request() - Iniciando fetch a: ${url}`);
+      logger.log(`🌐 ApiClient.request() - Método: ${method}`);
+      logger.log(`🌐 ApiClient.request() - Headers: ${JSON.stringify(headers)}`);
+      
+      // Crear AbortController para timeout (compatible con React Native)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos timeout
+      
       const response = await fetch(url, {
         ...options,
         headers,
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       // Log de response
       const logResponse = `✅ API ${method} ${endpoint} - ${response.status} ${response.statusText}`;
@@ -107,9 +118,28 @@ class ApiClient {
       logger.log(`Response: ${dataPreview}${JSON.stringify(data).length > 200 ? '...' : ''}`);
       
       return data as T;
-    } catch (error) {
-      const errorLog = `❌ API Request Failed ${method} ${endpoint}: ${error instanceof Error ? error.message : String(error)}`;
-      logger.error(errorLog);
+    } catch (error: any) {
+      // Log detallado del error
+      const errorName = error?.name || 'Unknown';
+      const errorMessage = error?.message || String(error);
+      const errorStack = error?.stack || 'N/A';
+      
+      logger.error(`❌ API Request Failed ${method} ${endpoint}`);
+      logger.error(`❌ Error Name: ${errorName}`);
+      logger.error(`❌ Error Message: ${errorMessage}`);
+      logger.error(`❌ Error Stack: ${errorStack}`);
+      logger.error(`❌ URL intentada: ${url}`);
+      
+      // Si es un error de red, dar más contexto
+      if (errorMessage.includes('Network request failed') || errorName === 'TypeError') {
+        logger.error(`⚠️ Posibles causas del error de red:`);
+        logger.error(`   1. El backend puede estar caído o inaccesible`);
+        logger.error(`   2. El dispositivo no tiene conexión a internet`);
+        logger.error(`   3. El dispositivo no puede alcanzar la IP del backend (firewall/red)`);
+        logger.error(`   4. El backend cambió de IP o puerto`);
+        logger.error(`   URL del backend: ${this.baseURL}`);
+      }
+      
       throw error;
     }
   }
