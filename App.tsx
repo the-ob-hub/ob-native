@@ -29,8 +29,8 @@ const SplashScreen = ({ onFinish }: { onFinish: () => void }) => {
       <LoginBackground />
       
       <View style={styles.splashContent}>
-        <Text style={styles.splashLogo}>OoBk</Text>
-        <Text style={styles.splashTagline}>Existe una nueva generación de servicios Bancarios y Financieros ;)</Text>
+        <Text style={styles.splashLogo}>OndaBank</Text>
+        <Text style={styles.splashLab}>Lab</Text>
         <ActivityIndicator size="large" color={COLORS.white} style={styles.loader} />
       </View>
     </View>
@@ -83,8 +83,8 @@ function App() {
       logger.log(`✅ App - handleSplashFinish() - Sesión válida, navegando a MainTabs`);
       setCurrentScreen('main');
     } else {
-      logger.log(`⚠️ App - handleSplashFinish() - Sin sesión, navegando a SignUpScreen`);
-      setCurrentScreen('signup');
+      logger.log(`⚠️ App - handleSplashFinish() - Sin sesión, navegando a LoginScreen`);
+      setCurrentScreen('login');
     }
   };
 
@@ -415,14 +415,14 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: 'bold',
     color: COLORS.white,
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  splashTagline: {
-    fontSize: 14,
+  splashLab: {
+    fontSize: 20,
+    fontStyle: 'italic',
     color: COLORS.white,
-    opacity: 0.9,
-    textAlign: 'center',
-    paddingHorizontal: SPACING.md,
+    opacity: 0.8,
+    marginBottom: 16,
   },
   loader: {
     marginTop: 48,

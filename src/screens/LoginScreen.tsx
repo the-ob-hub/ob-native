@@ -119,8 +119,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
         <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>OoBk</Text>
-          <Text style={styles.tagline}>Existe una nueva generación de servicios Bancarios y Financieros ;)</Text>
+          <Text style={styles.logo}>OndaBank</Text>
+          <Text style={styles.lab}>Lab</Text>
         </View>
 
         {/* Form */}
@@ -185,16 +185,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
             >
               <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>
-            {onShowSignUp && (
-              <TouchableOpacity
-                onPress={onShowSignUp}
-                disabled={isLoading}
-                style={styles.signUpLink}
-              >
-                <Text style={styles.signUpLinkText}>¿No tienes cuenta? Crear una</Text>
-              </TouchableOpacity>
-            )}
           </View>
+
+          {/* Botón de registro */}
+          {onShowSignUp && (
+            <TouchableOpacity
+              style={styles.signUpButton}
+              onPress={onShowSignUp}
+              disabled={isLoading}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.signUpButtonText}>Registrarme</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -204,7 +207,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-          <Text style={styles.versionBadgeText}>v1.87</Text>
+          <Text style={styles.versionBadgeText}>v1.88</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}
@@ -236,16 +239,15 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: 'bold',
     color: COLORS.white,
-    marginBottom: SPACING.sm,
+    marginBottom: 8,
     fontFamily: FONTS.inter.extraBold,
   },
-  tagline: {
-    fontSize: 14,
+  lab: {
+    fontSize: 20,
+    fontStyle: 'italic',
     color: COLORS.white,
-    opacity: 0.9,
+    opacity: 0.8,
     fontFamily: FONTS.inter.regular,
-    textAlign: 'center',
-    paddingHorizontal: SPACING.md,
   },
   form: {
     width: '100%',
@@ -323,16 +325,21 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontFamily: FONTS.inter.regular,
   },
-  signUpLink: {
-    marginTop: SPACING.sm,
+  signUpButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.lg,
   },
-  signUpLinkText: {
-    fontSize: 14,
-    color: COLORS.white,
-    opacity: 0.9,
-    textDecorationLine: 'underline',
-    fontFamily: FONTS.inter.regular,
+  signUpButtonText: {
+    fontSize: 16,
     fontWeight: '600',
+    color: COLORS.white,
+    fontFamily: FONTS.inter.semiBold,
   },
   versionBadge: {
     position: 'absolute',
