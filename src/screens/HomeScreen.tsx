@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, Dimensions, Vibration } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, Dimensions, Vibration, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Rect } from 'react-native-svg';
 import { COLORS, SPACING, FONTS } from '../constants';
@@ -32,6 +32,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const [selectedContact, setSelectedContact] = useState<UserContact | null>(null);
   const [showTransferScreen, setShowTransferScreen] = useState(false);
   const [transferDestinationCurrency, setTransferDestinationCurrency] = useState<Currency>('USDc');
+  const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const avatarRef = useRef<View | null>(null);
@@ -93,9 +94,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
     loadBalances();
   }, []);
 
-  const loadBalances = async () => {
+  /**
+   * Función para refrescar datos cuando el usuario hace pull-to-refresh
+   */
+  const onRefresh = async () => {
+    setRefreshing(true);
+    addLog('🔄 HomeScreen - Pull to refresh iniciado');
+    
     try {
-      addLog('💰 HomeScreen - Cargando balances del backend...');
+      // Refrescar balances y datos del usuario en paralelo
+      // Pasamos isRefresh=true para que no muestre el loading inicial
+      await Promise.all([
+        loadBalances(true),
+        loadUserData(true),
+      ]);
+      
+      addLog('✅ HomeScreen - Pull to refresh completado');
+    } catch (error: any) {
+      addLog(`❌ HomeScreen - Error en pull to refresh: ${error.message}`);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const loadBalances = async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        addLog('🔄 HomeScreen - Refrescando balances del backend...');
+      } else {
+        addLog('💰 HomeScreen - Cargando balances del backend...');
+      }
       
       // Obtener userId (UUID) de AsyncStorage
       const userId = await AsyncStorage.getItem('currentUserId');
@@ -133,10 +161,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
     }
   };
 
-  const loadUserData = async () => {
+  const loadUserData = async (isRefresh = false) => {
     try {
-      setIsLoading(true);
-      addLog('👤 HomeScreen - Cargando datos del usuario...');
+      // Solo mostrar loading si no es un refresh (para evitar conflictos con el spinner del refresh)
+      if (!isRefresh) {
+        setIsLoading(true);
+      }
+      
+      if (isRefresh) {
+        addLog('🔄 HomeScreen - Refrescando datos del usuario...');
+      } else {
+        addLog('👤 HomeScreen - Cargando datos del usuario...');
+      }
 
       // Inicializar la base de datos si no está inicializada
       try {
@@ -214,13 +250,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
       console.error('❌ Error en loadUserData:', error);
       setCurrentUser(getMockUser());
     } finally {
-      // Simular un delay mínimo para la animación
-      setTimeout(() => {
-        setIsLoading(false);
-        
-        // Animación de fade in
-        Animated.parallel([
-          Animated.timing(fadeAnim, {
+      // Solo mostrar loading y animaciones si no es un refresh
+      if (!isRefresh) {
+        // Simular un delay mínimo para la animación
+        setTimeout(() => {
+          setIsLoading(false);
+          
+          // Animación de fade in
+          Animated.parallel([
+            Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 400,
             useNativeDriver: true,
@@ -233,6 +271,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
           }),
         ]).start();
       }, 500);
+      }
     }
   };
 
@@ -346,6 +385,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
                 scrollEnabled={true}
                 bounces={true}
                 nestedScrollEnabled={true}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={COLORS.white}
+                    colors={[COLORS.white]}
+                  />
+                }
               >
                 <View style={styles.emptyCard}>
                   <Text style={styles.cardTitle}>Movimientos Unificados</Text>
