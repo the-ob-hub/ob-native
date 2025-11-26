@@ -22,8 +22,16 @@ import { useLogs } from '../contexts/LogContext';
 import { DatePickerLATAM, formatDateForService } from '../components/DatePickerLATAM';
 import { PasswordValidator } from '../components/PasswordValidator';
 
-const LogoRegistro = () => (
-  <View style={styles.logoWrapper}>
+interface LogoRegistroProps {
+  onPress?: () => void;
+}
+
+const LogoRegistro: React.FC<LogoRegistroProps> = ({ onPress }) => (
+  <TouchableOpacity 
+    style={styles.logoWrapper} 
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
     <Svg width={200} height={200} viewBox="0 0 1024 1024" fill="none">
       <Defs>
         <LinearGradient id="paint0_linear_104_56" x1="-47.7867" y1="-9.22114e-06" x2="952.32" y2="1068.37" gradientUnits="userSpaceOnUse">
@@ -42,7 +50,7 @@ const LogoRegistro = () => (
     {/* Textos debajo del logo */}
     <Text style={styles.welcomeText}>bienvenido a OoBnk</Text>
     <Text style={styles.subtitleText}>Crear una cuenta sin costos ni comisiones!</Text>
-  </View>
+  </TouchableOpacity>
 );
 
 interface SignUpScreenProps {
@@ -69,6 +77,21 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLogViewerVisible, setIsLogViewerVisible] = useState(false);
   const { addLog } = useLogs();
+
+  // Función para autocompletar los datos cuando se presiona el logo
+  const handleAutoFill = () => {
+    setFirstName('Diego');
+    setLastName('Burgos');
+    setEmail('diego.burgos@gmail.com');
+    setPhoneNumber('+5491131885769');
+    setAddress('Melo 2883');
+    setPassword('Dieguito1!');
+    setConfirmPassword('Dieguito1!');
+    // Fecha: 11-03-1980 (formato DD-MM-YYYY)
+    const birthDateObj = new Date(1980, 2, 11); // Mes es 0-indexed, marzo = 2
+    setBirthDate(birthDateObj);
+    addLog('✅ SignUpScreen - Datos autocompletados');
+  };
 
   const validateForm = (): { isValid: boolean; message?: string } => {
     if (!firstName.trim()) {
@@ -226,7 +249,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
       >
           <View style={styles.content}>
             {/* Logo con textos */}
-            <LogoRegistro />
+            <LogoRegistro onPress={handleAutoFill} />
 
             {/* Header */}
             <View style={styles.header}>
@@ -439,7 +462,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-        <Text style={styles.versionBadgeText}>v1.90</Text>
+        <Text style={styles.versionBadgeText}>v2.2.2</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}

@@ -5,7 +5,8 @@ import { logger } from '../../utils/logger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base URL del backend real
-const BASE_URL = 'http://ec2-34-224-57-79.compute-1.amazonaws.com:3000';
+// Usar HTTP sin puerto (puerto automático)
+const BASE_URL = 'http://oobnk.com';
 
 export interface ApiConfig {
   baseURL?: string;
@@ -53,16 +54,22 @@ class ApiClient {
    */
   async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    externalSignal?: AbortSignal
   ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+    // Codificar el endpoint para manejar caracteres especiales como # en IDs compuestos
+    const encodedEndpoint = endpoint.split('/').map(segment => {
+      // Codificar cada segmento del path, pero preservar los separadores
+      return segment.includes('#') ? segment.replace(/#/g, '%23') : segment;
+    }).join('/');
+    const url = `${this.baseURL}${encodedEndpoint}`;
     const method = options.method || 'GET';
     
     // Obtener JWT token y agregarlo a los headers
     const jwtToken = await this.getJwtToken();
     const headers: Record<string, string> = {
       ...this.defaultHeaders,
-      ...options.headers,
+      ...(options.headers as Record<string, string> || {}),
     };
     
     // Agregar Authorization header si hay JWT
@@ -91,13 +98,35 @@ class ApiClient {
       logger.log(`🌐 ApiClient.request() - Headers: ${JSON.stringify(headers)}`);
       
       // Crear AbortController para timeout (compatible con React Native)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos timeout
+      const timeoutController = new AbortController();
+      const timeoutId = setTimeout(() => timeoutController.abort(), 30000); // 30 segundos timeout
+      
+      // Combinar signal externo (si existe) con el timeout signal
+      // Si hay un signal externo, crear un nuevo controller que escuche ambos
+      let finalSignal: AbortSignal;
+      if (externalSignal) {
+        // Crear un nuevo controller que se cancela si cualquiera de los dos se cancela
+        const combinedController = new AbortController();
+        
+        // Escuchar el signal externo
+        externalSignal.addEventListener('abort', () => {
+          combinedController.abort();
+        });
+        
+        // Escuchar el timeout signal
+        timeoutController.signal.addEventListener('abort', () => {
+          combinedController.abort();
+        });
+        
+        finalSignal = combinedController.signal;
+      } else {
+        finalSignal = timeoutController.signal;
+      }
       
       const response = await fetch(url, {
         ...options,
         headers,
-        signal: controller.signal,
+        signal: finalSignal,
       });
       
       clearTimeout(timeoutId);
@@ -140,6 +169,13 @@ class ApiClient {
         logger.error(`   URL del backend: ${this.baseURL}`);
       }
       
+      // Si es AbortError, no loggear como error (fue cancelado intencionalmente)
+      if (errorName === 'AbortError') {
+        // No loggear como error, solo como info si es necesario
+        // throw error; // Relanzar para que el caller pueda manejarlo
+        throw error; // Relanzar silenciosamente
+      }
+      
       throw error;
     }
   }
@@ -147,19 +183,19 @@ class ApiClient {
   /**
    * GET request
    */
-  async get<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  async get<T>(endpoint: string, options?: RequestInit, signal?: AbortSignal): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: 'GET' }, signal);
   }
 
   /**
    * POST request
    */
-  async post<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
+  async post<T>(endpoint: string, body?: any, options?: RequestInit, signal?: AbortSignal): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
-    });
+    }, signal);
   }
 
   /**

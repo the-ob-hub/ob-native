@@ -484,6 +484,18 @@ class CognitoAuthService {
           logger.error(`📧 CognitoService.confirmSignUp() - Email usado: ${email}`);
           logger.error(`🔢 CognitoService.confirmSignUp() - Código usado: ${code}`);
           
+          // Si el error es PostConfirmation timeout, el usuario SÍ está confirmado en Cognito
+          // Solo falló el Lambda que crea el usuario en el backend, pero puede hacer login igual
+          if (errorCode === 'UnexpectedLambdaException' && errorMsg.includes('PostConfirmation')) {
+            logger.log(`⚠️ CognitoService.confirmSignUp() - PostConfirmation Lambda falló, pero usuario confirmado en Cognito`);
+            logger.log(`✅ CognitoService.confirmSignUp() - Tratando como éxito - usuario puede hacer login`);
+            resolve({
+              success: true,
+              message: 'Registro confirmado exitosamente. Puedes iniciar sesión.',
+            });
+            return;
+          }
+          
           // Mensajes más específicos según el tipo de error
           let userMessage = errorMsg;
           if (errorCode === 'ExpiredCodeException') {

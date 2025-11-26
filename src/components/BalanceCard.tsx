@@ -450,7 +450,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
           </View>
         )}
 
-        {/* Header - Moneda y Saldo */}
+        {/* Header - Saldo */}
         <View style={styles.header}>
           <BalanceDisplay 
             balance={balance.amount} 
@@ -619,17 +619,22 @@ const styles = StyleSheet.create({
   balanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
+    justifyContent: 'center', // Centrar el contenido horizontalmente
+    width: '100%',
+    position: 'relative',
   },
   currencyText: {
     fontSize: 14,
     fontFamily: FONTS.poppins.light,
-    color: COLORS.textSecondary,
-    marginRight: SPACING.xs,
+    color: COLORS.white, // Cambiado a blanco
+    position: 'absolute',
+    left: '12.5%', // Posicionar arriba del primer botón (centro del primer botón = 12.5% del ancho total)
   },
   balanceAmountContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    justifyContent: 'center', // Centrar el valor numérico
+    width: '100%', // Ocupar todo el ancho para centrar correctamente
     position: 'relative',
   },
   balanceInteger: {

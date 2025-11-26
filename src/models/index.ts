@@ -89,6 +89,32 @@ export interface BalancesResponse {
   balances: Balance[];
 }
 
+/**
+ * Movement Model
+ */
+export interface Movement {
+  id: string;
+  userId: string;
+  balanceId: string;
+  movementType: string;
+  amount: number;
+  currency: Currency;
+  direction: 'in' | 'out';
+  status: string;
+  description?: string;
+  title: string;
+  date: string;
+  assetType: string;
+  assetCode: string;
+  metadata?: any;
+  externalReference?: string;
+  balanceBefore?: number;
+  balanceAfter?: number;
+  counterpartUserId?: string;
+  counterpartAccount?: string;
+  isIncome: boolean;
+}
+
 // Re-export contact models
 export * from './contacts';
 

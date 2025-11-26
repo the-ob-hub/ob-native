@@ -125,13 +125,15 @@ export const balanceService = {
    * 
    * Transforma la respuesta del backend al formato esperado por la app
    */
-  async getBalances(userId: string): Promise<BalancesResponse> {
+  async getBalances(userId: string, signal?: AbortSignal): Promise<BalancesResponse> {
     try {
       logger.log(`💰 BalanceService - Obteniendo balances para userId: ${userId}`);
       
       // Llamar al backend
       const backendResponse = await apiClient.get<BackendBalancesResponse>(
-        `/api/v1/users/${userId}/balances`
+        `/api/v1/users/${userId}/balances`,
+        undefined,
+        signal
       );
       
       logger.log(`✅ BalanceService - Respuesta del backend recibida`);
@@ -166,6 +168,10 @@ export const balanceService = {
         balances: sortedBalances,
       };
     } catch (error: any) {
+      // Si es AbortError, re-lanzar sin loggear como error (fue cancelado intencionalmente)
+      if (error.name === 'AbortError') {
+        throw error;
+      }
       logger.error(`❌ BalanceService - Error al obtener balances: ${error.message}`);
       logger.error(`❌ BalanceService - Error stack: ${error.stack || 'N/A'}`);
       throw error;

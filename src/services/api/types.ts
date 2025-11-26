@@ -117,3 +117,74 @@ export interface BackendUserResponse {
   error?: string;
 }
 
+// Input para crear usuario en el backend
+export interface CreateUserInput {
+  id?: string; // UUID del usuario (sub de Cognito)
+  fullName: string;
+  documentType: string;
+  documentNumber: string;
+  birthDate: string; // ISO date string
+  nationality: string;
+  email: string;
+  phone: string;
+  address: {
+    street: string;
+    city?: string;
+    state?: string;
+    country: string;
+    postalCode?: string;
+  };
+  countryOfResidence: string;
+  countryOfFundsOrigin: string;
+  isPEP?: boolean;
+  pepDetails?: string;
+  deviceFingerprint?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+// Respuesta del backend al crear usuario
+export interface CreateUserResponse {
+  success: boolean;
+  data: BackendUser;
+  error?: string;
+}
+
+/**
+ * Tipos para la respuesta del Backend de Movements (Go)
+ */
+
+// Movement tal como lo devuelve el backend
+export interface BackendMovement {
+  id: string;
+  userId: string;
+  balanceId: string;
+  movementType: string; // "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "fee" | "refund" | "adjustment" | "swap" | "stake" | "unstake"
+  amount: string; // Decimal como string
+  assetType: string; // "fiat" | "crypto"
+  assetCode: string; // "USD" | "UYU" | "USDc" | etc
+  direction: string; // "in" | "out"
+  status: string; // "pending" | "processing" | "completed" | "failed" | "cancelled" | "reversed"
+  description?: string;
+  metadata?: any;
+  externalReference?: string;
+  balanceBefore?: string; // Decimal como string
+  balanceAfter?: string; // Decimal como string
+  counterpartUserId?: string;
+  counterpartAccount?: string;
+  counterpartName?: string;
+  scheduledAt?: string;
+  processedAt?: string;
+  failedAt?: string;
+  failureReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Respuesta del backend para movements
+export interface BackendMovementsResponse {
+  success: boolean;
+  data: BackendMovement[];
+  error?: string;
+}
+

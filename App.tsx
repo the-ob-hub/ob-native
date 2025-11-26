@@ -11,6 +11,7 @@ import { COLORS, SPACING } from './src/constants';
 import { LogProvider } from './src/contexts/LogContext';
 import { BackgroundColorProvider } from './src/contexts/BackgroundColorContext';
 import { cognitoService } from './src/services/auth/cognitoService';
+import { userService } from './src/services/api/userService';
 import { LoginBackground } from './src/components/LoginBackground';
 import { logger } from './src/utils/logger';
 
@@ -43,7 +44,52 @@ function App() {
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpUsername, setSignUpUsername] = useState('');
 
+  /**
+   * Limpia TODOS los datos locales del dispositivo
+   */
+  const clearAllLocalData = async () => {
+    logger.log(`🧹 App - clearAllLocalData() - Iniciando limpieza completa de datos locales`);
+    try {
+      // Cerrar sesión en Cognito
+      try {
+        logger.log(`🔐 App - clearAllLocalData() - Cerrando sesión en Cognito`);
+        await cognitoService.signOut();
+      } catch (cognitoError: any) {
+        logger.log(`⚠️ App - clearAllLocalData() - Error cerrando Cognito (puede que no haya sesión): ${cognitoError.message}`);
+      }
+      
+      // Limpiar TODOS los items de AsyncStorage
+      logger.log(`🗑️ App - clearAllLocalData() - Limpiando AsyncStorage completamente`);
+      await AsyncStorage.multiRemove([
+        'jwt_token',
+        'currentUserId',
+        'currentUserEmail',
+        'hasCompletedOnboarding',
+        'tracking_events', // Analytics
+      ]);
+      // También limpiar todo por si acaso
+      await AsyncStorage.clear();
+      
+      // Limpiar base de datos SQLite
+      logger.log(`🗄️ App - clearAllLocalData() - Limpiando base de datos SQLite`);
+      try {
+        const { db } = await import('./src/data/database');
+        await db.init();
+        await db.clearAllData();
+      } catch (dbError: any) {
+        logger.log(`⚠️ App - clearAllLocalData() - Error limpiando DB: ${dbError.message}`);
+      }
+      
+      logger.log(`✅ App - clearAllLocalData() - Limpieza completa exitosa`);
+    } catch (error: any) {
+      const errorMsg = `❌ App - clearAllLocalData() - Error en limpieza: ${error.message || String(error)}`;
+      logger.error(errorMsg);
+      throw error;
+    }
+  };
+
   useEffect(() => {
+    // Verificar estado de autenticación al iniciar
     checkAuthStatus();
   }, []);
 
@@ -111,8 +157,9 @@ function App() {
         
         // Obtener UUID del usuario (sub de Cognito) para el backend
         const email = attributes.email || '';
-        const userIdUUID = attributes.sub || attributes['cognito:username'] || 'unknown'; // UUID para backend
+        const userIdUUID = attributes.sub || attributes['cognito:username'] || 'unknown'; // UUID de Cognito
         const userIdEmail = email || userIdUUID; // Email para base de datos local
+        
         const fullName = attributes.name || '';
         const phone = attributes.phone_number || '';
         const birthDate = attributes.birthdate || '';
@@ -123,9 +170,27 @@ function App() {
         logger.log(`👤 App - handleLoginSuccess() - FullName: ${fullName || 'N/A'}`);
         logger.log(`📱 App - handleLoginSuccess() - Phone: ${phone || 'N/A'}`);
         
-        // Guardar UUID en AsyncStorage para llamadas al backend
-        await AsyncStorage.setItem('currentUserId', userIdUUID);
-        logger.log(`💾 App - handleLoginSuccess() - UserId UUID guardado en AsyncStorage: ${userIdUUID}`);
+        // Intentar obtener el usuario del backend por email para obtener su KSUID (usr-xxxxx)
+        // Si no existe, se creará automáticamente en HomeScreen y obtendremos el KSUID
+        try {
+          const backendUser = await userService.getUserByEmail(email);
+          
+          if (backendUser && backendUser.id) {
+            // El backend devuelve un KSUID con prefijo (usr-xxxxx)
+            await AsyncStorage.setItem('currentUserId', backendUser.id);
+            logger.log(`💾 App - handleLoginSuccess() - KSUID obtenido del backend: ${backendUser.id}`);
+          } else {
+            // Usuario no encontrado, se creará automáticamente en HomeScreen
+            // Por ahora usar UUID de Cognito temporalmente, será reemplazado por el KSUID cuando se cree el usuario
+            await AsyncStorage.setItem('currentUserId', userIdUUID);
+            logger.log(`💾 App - handleLoginSuccess() - Usuario no encontrado, usando UUID temporalmente (se creará en backend): ${userIdUUID}`);
+          }
+        } catch (error: any) {
+          // Si hay error, usar UUID de Cognito temporalmente
+          // Se creará automáticamente en HomeScreen y obtendremos el KSUID
+          await AsyncStorage.setItem('currentUserId', userIdUUID);
+          logger.log(`💾 App - handleLoginSuccess() - Error buscando usuario, usando UUID temporalmente (se creará en backend): ${userIdUUID}`);
+        }
         
         // Guardar también el email para referencia local
         await AsyncStorage.setItem('currentUserEmail', userIdEmail);
@@ -291,23 +356,10 @@ function App() {
   const handleLogout = async () => {
     logger.log(`🚪 App - handleLogout() - Iniciando proceso de logout`);
     try {
-      // Cerrar sesión en Cognito
-      logger.log(`🔐 App - handleLogout() - Cerrando sesión en Cognito`);
-      await cognitoService.signOut();
-      
-      // Limpiar AsyncStorage
-      logger.log(`🗑️ App - handleLogout() - Limpiando AsyncStorage`);
-      await AsyncStorage.removeItem('hasCompletedOnboarding');
-      await AsyncStorage.removeItem('currentUserId');
-      
-      // Limpiar base de datos SQLite
-      logger.log(`🗄️ App - handleLogout() - Limpiando base de datos SQLite`);
-      const { db } = await import('./src/data/database');
-      await db.init();
-      await db.clearAllData();
+      await clearAllLocalData();
       
       logger.log(`✅ App - handleLogout() - Logout completado exitosamente`);
-      logger.log(`📱 App - handleLogout() - Navegando a LoginScreen`);
+      logger.log(`📱 App - handleLogout() - Navegando a SignUpScreen`);
       
       // Volver al registro (primera pantalla)
       setCurrentScreen('signup');
