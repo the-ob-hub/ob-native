@@ -31,22 +31,22 @@ export interface UserDetail {
 function transformBackendUser(backendUser: BackendUser): User {
   // Construir dirección como string (formato esperado por la app)
   const addressParts: string[] = [];
-  if (backendUser.addressStreet) addressParts.push(backendUser.addressStreet);
-  if (backendUser.addressCity) addressParts.push(backendUser.addressCity);
-  if (backendUser.addressState) addressParts.push(backendUser.addressState);
-  if (backendUser.addressPostalCode) addressParts.push(backendUser.addressPostalCode);
-  if (backendUser.addressCountry) addressParts.push(backendUser.addressCountry);
+  if (backendUser.address_street) addressParts.push(backendUser.address_street);
+  if (backendUser.address_city) addressParts.push(backendUser.address_city);
+  if (backendUser.address_state) addressParts.push(backendUser.address_state);
+  if (backendUser.address_postal_code) addressParts.push(backendUser.address_postal_code);
+  if (backendUser.address_country) addressParts.push(backendUser.address_country);
   
   const address = addressParts.length > 0 
     ? addressParts.join(', ') 
-    : backendUser.addressCountry || '';
+    : backendUser.address_country || '';
 
   // Formatear fecha de nacimiento (backend devuelve ISO string)
-  const birthDate = backendUser.birthDate ? backendUser.birthDate.split('T')[0] : '';
+  const birthDate = backendUser.birth_date ? backendUser.birth_date.split('T')[0] : '';
 
   // Mapear status del backend a onboardingStatus de la app
   let onboardingStatus: User['onboardingStatus'] = 'completed';
-  if (backendUser.status === 'pending_review' || backendUser.identityPendingManualReview) {
+  if (backendUser.status === 'pending_review' || backendUser.identity_pending_manual_review) {
     onboardingStatus = 'pending_validation';
   } else if (backendUser.status === 'active' || backendUser.status === 'approved') {
     onboardingStatus = 'completed';
@@ -57,19 +57,19 @@ function transformBackendUser(backendUser: BackendUser): User {
   return {
     id: backendUser.id,
     email: backendUser.email,
-    fullName: backendUser.fullName,
+    fullName: backendUser.full_name,
     phone: backendUser.phone,
-    documentType: backendUser.documentType,
-    documentNumber: backendUser.documentNumber,
+    documentType: backendUser.document_type,
+    documentNumber: backendUser.document_number,
     birthDate: birthDate,
     nationality: backendUser.nationality,
     address: address,
-    countryOfResidence: backendUser.countryOfResidence,
-    countryOfFundsOrigin: backendUser.countryOfFundsOrigin,
-    isPEP: backendUser.isPEP,
+    countryOfResidence: backendUser.country_of_residence,
+    countryOfFundsOrigin: backendUser.country_of_funds_origin,
+    isPEP: backendUser.is_pep,
     onboardingStatus: onboardingStatus,
-    createdAt: backendUser.createdAt,
-    updatedAt: backendUser.updatedAt,
+    createdAt: backendUser.created_at,
+    updatedAt: backendUser.updated_at,
   };
 }
 
@@ -95,8 +95,8 @@ export const userService = {
       if (backendResponse.success && backendResponse.data) {
         const user = backendResponse.data.find((u) => u.email === email);
         if (user) {
-          logger.log(`✅ UserService - Usuario encontrado por email: ${user.fullName}`);
-          logger.log(`🔗 UserService - KSUID: ${user.id}`);
+      logger.log(`✅ UserService - Usuario encontrado por email: ${user.full_name}`);
+      logger.log(`🔗 UserService - KSUID: ${user.id}`);
           return transformBackendUser(user);
         }
       }
@@ -139,7 +139,7 @@ export const userService = {
         throw new Error('Usuario no encontrado en el backend');
       }
       
-      logger.log(`👤 UserService - Usuario encontrado: ${backendResponse.data.fullName}`);
+      logger.log(`👤 UserService - Usuario encontrado: ${backendResponse.data.full_name}`);
       logger.log(`📧 UserService - Email: ${backendResponse.data.email}`);
       
       // Transformar al formato de la app
@@ -209,10 +209,10 @@ export const userService = {
       // El backend ahora usa KSUID con prefijo (usr-xxxxx), no enviamos id y el backend lo genera
       const createUserInput: CreateUserInput = {
         // No enviamos id, el backend genera un KSUID con prefijo usr-
-        fullName: fullName,
-        documentType: 'CI', // Por defecto Cédula de Identidad
-        documentNumber: `TEMP-${userId.substring(0, 8)}`, // Temporal hasta que el usuario complete onboarding
-        birthDate: birthDateISO, // ISO date string completo (RFC3339)
+        full_name: fullName,
+        document_type: 'CI', // Por defecto Cédula de Identidad
+        document_number: `TEMP-${userId.substring(0, 8)}`, // Temporal hasta que el usuario complete onboarding
+        birth_date: birthDateISO, // ISO date string completo (RFC3339)
         nationality: 'UY', // Por defecto Uruguay
         email: email,
         phone: phone,
@@ -220,13 +220,13 @@ export const userService = {
           street: addressStreet || 'Sin dirección',
           country: addressCountry,
         },
-        countryOfResidence: 'UY', // Por defecto Uruguay
-        countryOfFundsOrigin: 'UY', // Por defecto Uruguay
-        isPEP: false,
+        country_of_residence: 'UY', // Por defecto Uruguay
+        country_of_funds_origin: 'UY', // Por defecto Uruguay
+        is_pep: false,
       };
       
       logger.log(`📤 UserService - Enviando datos de creación al backend`);
-      logger.log(`👤 UserService - FullName: ${createUserInput.fullName}`);
+      logger.log(`👤 UserService - FullName: ${createUserInput.full_name}`);
       logger.log(`📧 UserService - Email: ${createUserInput.email}`);
       logger.log(`📱 UserService - Phone: ${createUserInput.phone}`);
       
@@ -248,7 +248,7 @@ export const userService = {
         throw new Error('Usuario no creado en el backend');
       }
       
-      logger.log(`✅ UserService - Usuario creado exitosamente: ${backendResponse.data.fullName}`);
+      logger.log(`✅ UserService - Usuario creado exitosamente: ${backendResponse.data.full_name}`);
       logger.log(`📧 UserService - Email: ${backendResponse.data.email}`);
       logger.log(`🔗 UserService - KSUID del usuario creado: ${backendResponse.data.id}`);
       

@@ -10,23 +10,23 @@ export interface Address {
   street: string;
   number: string;
   city: string;
-  postalCode?: string;
+  postal_code?: string;
   province?: string;
   country?: string;
 }
 
 export interface OnboardingSubmitRequest {
   email: string;
-  fullName: string;
+  full_name: string;
   phone: string;
-  documentType: string;
-  documentNumber: string;
-  birthDate: string;
+  document_type: string;
+  document_number: string;
+  birth_date: string;
   nationality: string;
   address: Address; // Objeto estructurado, no string
-  countryOfResidence: string;
-  countryOfFundsOrigin: string;
-  isPEP: boolean;
+  country_of_residence: string;
+  country_of_funds_origin: string;
+  is_pep: boolean;
   // Agregar más campos según sea necesario
 }
 
@@ -44,10 +44,10 @@ export interface OnboardingValidations {
  * Datos del usuario creado en el backend
  */
 export interface OnboardingData {
-  userId: string;
+  user_id: string;
   status: string;
   message?: string;
-  identityPendingManualReview?: boolean;
+  identity_pending_manual_review?: boolean;
   validations?: OnboardingValidations;
 }
 

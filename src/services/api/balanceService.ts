@@ -41,8 +41,8 @@ function getAvailableActions(currency: Currency): ActionId[] {
  * Convierte un balance del backend al formato de la app
  */
 function transformBackendBalance(backendBalance: BackendBalance): Balance {
-  const currency = mapAssetCodeToCurrency(backendBalance.assetCode);
-  const amount = parseFloat(backendBalance.availableBalance) || 0;
+  const currency = mapAssetCodeToCurrency(backendBalance.asset_code);
+  const amount = parseFloat(backendBalance.available_balance) || 0;
   const availableActions = getAvailableActions(currency);
 
   return {
@@ -89,12 +89,12 @@ export const balanceService = {
       logger.log(`💰 BalanceService - Realizando depósito para userId: ${userId}`);
       logger.log(`📊 BalanceService - AssetCode: ${input.assetCode}, Amount: ${input.amount}`);
       
-      // El backend espera amount como string (decimal.Decimal)
+      // El backend espera amount como string (decimal.Decimal) y snake_case
       const depositPayload = {
-        assetCode: input.assetCode,
-        assetType: input.assetType,
+        asset_code: input.assetCode,
+        asset_type: input.assetType,
         amount: input.amount.toString(), // Convertir a string para el backend
-        externalReference: input.externalReference,
+        external_reference: input.externalReference,
         description: input.description,
       };
       
@@ -152,7 +152,7 @@ export const balanceService = {
       
       // Transformar cada balance del backend al formato de la app
       const transformedBalances = backendResponse.data.map((backendBalance) => {
-        logger.log(`🔄 BalanceService - Transformando balance: ${backendBalance.assetCode} = ${backendBalance.availableBalance}`);
+        logger.log(`🔄 BalanceService - Transformando balance: ${backendBalance.asset_code} = ${backendBalance.available_balance}`);
         return transformBackendBalance(backendBalance);
       });
       

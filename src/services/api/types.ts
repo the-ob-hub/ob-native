@@ -60,18 +60,18 @@ export interface Inventory {
  * Tipos para la respuesta del Backend (Go)
  */
 
-// Balance tal como lo devuelve el backend
+// Balance tal como lo devuelve el backend (snake_case)
 export interface BackendBalance {
   id: string;
-  userId: string;
-  assetCode: string; // "USD" | "UYU" | "USDc"
-  availableBalance: string; // Decimal como string
-  pendingBalance: string;
-  totalBalance: string;
-  assetType: string; // "fiat" | "crypto"
-  accountType: string; // "main"
-  createdAt: string;
-  updatedAt: string;
+  user_id: string;
+  asset_code: string; // "USD" | "UYU" | "USDc"
+  available_balance: string; // Decimal como string
+  pending_balance: string;
+  total_balance: string;
+  asset_type: string; // "fiat" | "crypto"
+  account_type: string; // "main"
+  created_at: string;
+  updated_at: string;
 }
 
 // Respuesta del backend para balances
@@ -85,29 +85,29 @@ export interface BackendBalancesResponse {
  * Tipos para la respuesta del Backend de Usuario (Go)
  */
 
-// Usuario tal como lo devuelve el backend
+// Usuario tal como lo devuelve el backend (snake_case)
 export interface BackendUser {
   id: string;
-  fullName: string;
-  documentType: string;
-  documentNumber: string;
-  birthDate: string; // ISO date string
+  full_name: string;
+  document_type: string;
+  document_number: string;
+  birth_date: string; // ISO date string
   nationality: string;
   email: string;
   phone: string;
-  addressStreet?: string;
-  addressCity?: string;
-  addressState?: string;
-  addressCountry: string;
-  addressPostalCode?: string;
-  countryOfResidence: string;
-  countryOfFundsOrigin: string;
-  isPEP: boolean;
-  pepDetails?: string;
+  address_street?: string;
+  address_city?: string;
+  address_state?: string;
+  address_country: string;
+  address_postal_code?: string;
+  country_of_residence: string;
+  country_of_funds_origin: string;
+  is_pep: boolean;
+  pep_details?: string;
   status: string;
-  identityPendingManualReview: boolean;
-  createdAt: string;
-  updatedAt: string;
+  identity_pending_manual_review: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // Respuesta del backend para usuario
@@ -117,13 +117,13 @@ export interface BackendUserResponse {
   error?: string;
 }
 
-// Input para crear usuario en el backend
+// Input para crear usuario en el backend (snake_case)
 export interface CreateUserInput {
   id?: string; // UUID del usuario (sub de Cognito)
-  fullName: string;
-  documentType: string;
-  documentNumber: string;
-  birthDate: string; // ISO date string
+  full_name: string;
+  document_type: string;
+  document_number: string;
+  birth_date: string; // ISO date string
   nationality: string;
   email: string;
   phone: string;
@@ -132,15 +132,15 @@ export interface CreateUserInput {
     city?: string;
     state?: string;
     country: string;
-    postalCode?: string;
+    postal_code?: string;
   };
-  countryOfResidence: string;
-  countryOfFundsOrigin: string;
-  isPEP?: boolean;
-  pepDetails?: string;
-  deviceFingerprint?: string;
-  ipAddress?: string;
-  userAgent?: string;
+  country_of_residence: string;
+  country_of_funds_origin: string;
+  is_pep?: boolean;
+  pep_details?: string;
+  device_fingerprint?: string;
+  ip_address?: string;
+  user_agent?: string;
 }
 
 // Respuesta del backend al crear usuario
@@ -154,31 +154,31 @@ export interface CreateUserResponse {
  * Tipos para la respuesta del Backend de Movements (Go)
  */
 
-// Movement tal como lo devuelve el backend
+// Movement tal como lo devuelve el backend (snake_case)
 export interface BackendMovement {
   id: string;
-  userId: string;
-  balanceId: string;
-  movementType: string; // "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "fee" | "refund" | "adjustment" | "swap" | "stake" | "unstake"
+  user_id: string;
+  balance_id: string;
+  movement_type: string; // "deposit" | "withdrawal" | "transfer_in" | "transfer_out" | "fee" | "refund" | "adjustment" | "swap" | "stake" | "unstake"
   amount: string; // Decimal como string
-  assetType: string; // "fiat" | "crypto"
-  assetCode: string; // "USD" | "UYU" | "USDc" | etc
+  asset_type: string; // "fiat" | "crypto"
+  asset_code: string; // "USD" | "UYU" | "USDc" | etc
   direction: string; // "in" | "out"
   status: string; // "pending" | "processing" | "completed" | "failed" | "cancelled" | "reversed"
   description?: string;
   metadata?: any;
-  externalReference?: string;
-  balanceBefore?: string; // Decimal como string
-  balanceAfter?: string; // Decimal como string
-  counterpartUserId?: string;
-  counterpartAccount?: string;
-  counterpartName?: string;
-  scheduledAt?: string;
-  processedAt?: string;
-  failedAt?: string;
-  failureReason?: string;
-  createdAt: string;
-  updatedAt: string;
+  external_reference?: string;
+  balance_before?: string; // Decimal como string
+  balance_after?: string; // Decimal como string
+  counterpart_user_id?: string;
+  counterpart_account?: string;
+  counterpart_name?: string;
+  scheduled_at?: string;
+  processed_at?: string;
+  failed_at?: string;
+  failure_reason?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Respuesta del backend para movements

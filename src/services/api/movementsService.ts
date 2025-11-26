@@ -44,7 +44,7 @@ export const movementsService = {
       
       // Transformar cada movimiento del backend al formato de la app
       const transformedMovements = backendResponse.data.map((backendMovement) => {
-        logger.log(`🔄 MovementsService - Transformando movimiento: ${backendMovement.movementType} - ${backendMovement.amount}`);
+        logger.log(`🔄 MovementsService - Transformando movimiento: ${backendMovement.movement_type} - ${backendMovement.amount}`);
         return transformBackendMovement(backendMovement);
       });
       
@@ -68,33 +68,33 @@ export const movementsService = {
  * Transforma un movimiento del backend al formato de la app
  */
 function transformBackendMovement(backendMovement: BackendMovement): Movement {
-  const currency = mapAssetCodeToCurrency(backendMovement.assetCode);
+  const currency = mapAssetCodeToCurrency(backendMovement.asset_code);
   const amount = parseFloat(backendMovement.amount);
   const isIncome = backendMovement.direction === 'in';
   
   // Generar título basado en el tipo de movimiento
-  const title = getMovementTitle(backendMovement.movementType, backendMovement.description);
+  const title = getMovementTitle(backendMovement.movement_type, backendMovement.description);
   
   return {
     id: backendMovement.id,
-    userId: backendMovement.userId,
-    balanceId: backendMovement.balanceId,
-    movementType: backendMovement.movementType,
+    userId: backendMovement.user_id,
+    balanceId: backendMovement.balance_id,
+    movementType: backendMovement.movement_type,
     amount: amount,
     currency: currency,
     direction: backendMovement.direction,
     status: backendMovement.status,
     description: backendMovement.description || title,
     title: title,
-    date: backendMovement.createdAt,
-    assetType: backendMovement.assetType,
-    assetCode: backendMovement.assetCode,
+    date: backendMovement.created_at,
+    assetType: backendMovement.asset_type,
+    assetCode: backendMovement.asset_code,
     metadata: backendMovement.metadata,
-    externalReference: backendMovement.externalReference,
-    balanceBefore: backendMovement.balanceBefore ? parseFloat(backendMovement.balanceBefore) : undefined,
-    balanceAfter: backendMovement.balanceAfter ? parseFloat(backendMovement.balanceAfter) : undefined,
-    counterpartUserId: backendMovement.counterpartUserId,
-    counterpartAccount: backendMovement.counterpartAccount,
+    externalReference: backendMovement.external_reference,
+    balanceBefore: backendMovement.balance_before ? parseFloat(backendMovement.balance_before) : undefined,
+    balanceAfter: backendMovement.balance_after ? parseFloat(backendMovement.balance_after) : undefined,
+    counterpartUserId: backendMovement.counterpart_user_id,
+    counterpartAccount: backendMovement.counterpart_account,
     isIncome: isIncome,
   };
 }

@@ -196,8 +196,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       // Loggear respuesta completa
       addLog(`📝 Respuesta del backend: ${JSON.stringify(response)}`);
       
-      // El backend retorna la estructura: { success: true, data: { userId: "...", ... } }
-      const backendUserId = response.data?.userId;
+      // El backend retorna la estructura: { success: true, data: { user_id: "...", ... } }
+      const backendUserId = response.data?.user_id;
       
       if (!backendUserId) {
         addLog(`❌ El backend no retornó un userId válido. Respuesta: ${JSON.stringify(response)}`);
@@ -356,8 +356,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       // Loggear la respuesta completa para debugging
       addLog(`📝 Respuesta completa del backend: ${JSON.stringify(response)}`);
       
-      // El backend retorna la estructura: { success: true, data: { userId: "...", ... } }
-      const backendUserId = response.data?.userId;
+      // El backend retorna la estructura: { success: true, data: { user_id: "...", ... } }
+      const backendUserId = response.data?.user_id;
       
       if (!backendUserId) {
         addLog(`❌ El backend no retornó un userId válido. Respuesta: ${JSON.stringify(response)}`);
