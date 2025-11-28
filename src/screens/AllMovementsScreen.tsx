@@ -12,14 +12,17 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Modal,
+  Platform,
 } from 'react-native';
-// import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { MovementCard } from '../components/MovementCard';
 import { Movement } from '../models';
 import { movementsService } from '../services/api/movementsService';
 import { logger } from '../utils/logger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS, SPACING, FONTS } from '../constants';
+import { COLORS, SPACING, FONTS, BORDER_RADIUS } from '../constants';
+import { SharedBackground } from '../components/SharedBackground';
 
 interface AllMovementsScreenProps {
   visible: boolean;
@@ -32,8 +35,6 @@ export const AllMovementsScreen: React.FC<AllMovementsScreenProps> = ({ visible,
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  // Usar valores por defecto en lugar de useSafeAreaInsets para evitar error si no hay SafeAreaProvider
-  const insets = { top: 44, bottom: 34, left: 0, right: 0 }; // Valores por defecto para iPhone
 
   const loadMovements = useCallback(async (isRefresh: boolean = false) => {
     try {
@@ -89,39 +90,93 @@ export const AllMovementsScreen: React.FC<AllMovementsScreenProps> = ({ visible,
     setRefreshing(false);
   }, [loadMovements]);
 
+  const SearchIcon = () => (
+    <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+      <Path
+        d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z"
+        stroke={COLORS.textSecondary}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M19 19L14.65 14.65"
+        stroke={COLORS.textSecondary}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+
+  const ClearIcon = () => (
+    <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+      <Path
+        d="M12 4L4 12M4 4L12 12"
+        stroke={COLORS.textSecondary}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+
+  const BackIcon = () => (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M19 12H5M5 12L12 19M5 12L12 5"
+        stroke={COLORS.white}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+
   if (!visible) {
     return null;
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={onClose}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Movimientos</Text>
-        <View style={styles.placeholder} />
-      </View>
+    <Modal
+      visible={visible}
+      transparent={false}
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <View style={styles.container}>
+        <SharedBackground />
 
-      {/* Buscador */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchIconContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
-        </View>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar..."
-          placeholderTextColor="#666"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-            <Text style={styles.clearButtonText}>✕</Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={onClose}>
+            <BackIcon />
           </TouchableOpacity>
-        )}
-      </View>
+          <Text style={styles.headerTitle}>Movimientos Unificados</Text>
+          <View style={styles.placeholder} />
+        </View>
+
+        {/* Buscador */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchIconContainer}>
+            <SearchIcon />
+          </View>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar movimientos..."
+            placeholderTextColor={COLORS.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+              <ClearIcon />
+            </TouchableOpacity>
+          )}
+        </View>
 
       {/* Lista de movimientos */}
       {isLoading ? (
@@ -159,39 +214,34 @@ export const AllMovementsScreen: React.FC<AllMovementsScreenProps> = ({ visible,
           )}
         </ScrollView>
       )}
-    </View>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: '#1e1e1e',
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingBottom: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    backgroundColor: 'transparent',
   },
   backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: '300',
+    padding: SPACING.sm,
   },
   headerTitle: {
-    color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: FONTS.poppins.bold,
+    fontFamily: FONTS.inter.bold,
+    color: COLORS.white,
+    flex: 1,
+    textAlign: 'center',
   },
   placeholder: {
     width: 40,
@@ -199,47 +249,35 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e1e1e',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
   searchIconContainer: {
-    marginRight: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchIcon: {
-    fontSize: 18,
+    marginRight: SPACING.sm,
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
-    fontSize: 16,
-    paddingVertical: 12,
-    fontFamily: FONTS.poppins.regular,
+    color: COLORS.white,
+    fontSize: 14,
+    fontFamily: FONTS.inter.regular,
+    paddingVertical: SPACING.sm,
   },
   clearButton: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  clearButtonText: {
-    color: '#888',
-    fontSize: 16,
+    padding: SPACING.xs,
+    marginLeft: SPACING.xs,
   },
   scrollView: {
     flex: 1,
   },
   movementsList: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xl,
   },
   emptyContainer: {
     padding: 40,

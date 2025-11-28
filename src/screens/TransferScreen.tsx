@@ -9,6 +9,7 @@ import {
   Vibration,
   Modal,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import AnimatedReanimated, {
@@ -389,9 +390,20 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
       addLog('❌ TransferScreen - Monto excede el saldo disponible');
       return;
     }
+    
+    // Ocultar teclado cuando se inicia la transferencia
+    hideKeyboard();
+    
     addLog(`✅ TransferScreen - Continuar con transferencia: ${numAmount} ${destinationCurrency} (desde ${sourceCurrency}) a ${contact?.fullName || 'N/A'}`);
     onContinue(numAmount, sourceCurrency, destinationCurrency);
   };
+  
+  // Ocultar teclado cuando está procesando
+  useEffect(() => {
+    if (isTransferring) {
+      hideKeyboard();
+    }
+  }, [isTransferring]);
 
   // Resetear error cuando cambia el monto
   useEffect(() => {
@@ -618,6 +630,7 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
         {/* Indicador de carga */}
         {isTransferring && (
           <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
             <Text style={styles.loadingText}>Procesando transferencia...</Text>
           </View>
         )}
@@ -1037,14 +1050,16 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
     marginBottom: SPACING.xs,
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
+    paddingVertical: SPACING.md,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   loadingText: {
     fontSize: 14,
     fontFamily: FONTS.inter.regular,
     color: COLORS.textSecondary,
     textAlign: 'center',
+    marginTop: SPACING.sm,
   },
 });
 

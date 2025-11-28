@@ -9,6 +9,7 @@ import { ProfileSheet } from '../components/ProfileSheet';
 import { ColorPickerCircles } from '../components/ColorPickerCircles';
 import { BalanceCard } from '../components/BalanceCard';
 import { TransferScreen } from './TransferScreen';
+import { TransactionSuccessScreen } from './TransactionSuccessScreen';
 import { User, Balance, Currency } from '../models';
 import { UserContact } from '../models/contacts';
 import { db } from '../data/database';
@@ -19,7 +20,6 @@ import { userService } from '../services/api/userService';
 import { cognitoService } from '../services/auth/cognitoService';
 import { movementsService } from '../services/api/movementsService';
 import { transferService } from '../services/api/transferService';
-import { contactsService } from '../services/api/contactsService';
 import { MovementCard } from '../components/MovementCard';
 import { Movement } from '../models';
 import { AllMovementsScreen } from './AllMovementsScreen';
@@ -45,6 +45,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const [showAllMovements, setShowAllMovements] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
+  const [showSuccessScreen, setShowSuccessScreen] = useState(false);
+  const [successData, setSuccessData] = useState<{
+    recipientName: string;
+    amount: number;
+    currency: Currency;
+    transactionId: string;
+    transactionDate: string;
+  } | null>(null);
   
   // Control de llamadas en progreso para evitar duplicados
   const loadingRef = useRef({
@@ -218,25 +226,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
         throw new Error(response.error || 'Error al realizar transferencia');
       }
 
-      addLog(`✅ HomeScreen - Transferencia exitosa: ${response.data?.id || 'N/A'}`);
+      const transactionId = response.data?.id || `tx_${Date.now()}`;
+      const transactionDate = response.data?.created_at || new Date().toISOString();
+      
+      addLog(`✅ HomeScreen - Transferencia exitosa: ${transactionId}`);
       
       // Guardar contacto localmente si tiene teléfono y no está guardado aún
       if (contact.phone && destinationUserId && !contact.isSaved) {
         try {
           addLog(`💾 HomeScreen - Guardando contacto localmente: ${contact.fullName} (Tel: ${contact.phone})`);
           
-          const contactData = {
+          // Asegurar que la base esté inicializada
+          await db.init();
+          
+          // Guardar contacto en SQLite
+          const contactToSave: UserContact = {
             contactId: destinationUserId,
+            cvu: contact.cvu || destinationUserId,
+            fullName: contact.fullName,
             alias: contact.alias || undefined,
+            phone: contact.phone,
+            hasDolarApp: true,
+            isSaved: true,
           };
           
-          const saveResult = await contactsService.addContact(contactData);
-          
-          if (saveResult.success) {
-            addLog(`✅ HomeScreen - Contacto guardado exitosamente en el backend`);
-          } else {
-            addLog(`⚠️ HomeScreen - No se pudo guardar el contacto, pero la transferencia fue exitosa`);
-          }
+          await db.saveContact(contactToSave);
+          addLog(`✅ HomeScreen - Contacto guardado exitosamente en base de datos`);
         } catch (error: any) {
           // No fallar la transferencia si falla el guardado del contacto
           addLog(`⚠️ HomeScreen - Error guardando contacto (transferencia exitosa): ${error.message}`);
@@ -250,14 +265,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
         loadMovements(undefined, true),
       ]);
 
-      // Cerrar pantalla de transferencia después de un breve delay para mostrar éxito
+      // Cerrar pantalla de transferencia y mostrar pantalla de éxito
+      setShowTransferScreen(false);
+      setIsTransferring(false);
+      setTransferError(null);
+      
+      // Guardar datos para la pantalla de éxito
+      setSuccessData({
+        recipientName: contact.fullName,
+        amount: amount,
+        currency: destinationCurrency,
+        transactionId: transactionId,
+        transactionDate: transactionDate,
+      });
+      
+      // Mostrar pantalla de éxito después de un breve delay
       setTimeout(() => {
-        setShowTransferScreen(false);
-        setSelectedContact(null);
-        setIsTransferring(false);
-        setTransferError(null);
+        setShowSuccessScreen(true);
         Vibration.vibrate(100); // Vibración de éxito
-      }, 500);
+      }, 300);
 
     } catch (error: any) {
       const errorMessage = error.message || 'Error al realizar transferencia';
@@ -985,6 +1011,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
                       }
                     }}
                   />
+
+                  {/* Pantalla de éxito de transacción */}
+                  {successData && (
+                    <TransactionSuccessScreen
+                      visible={showSuccessScreen}
+                      recipientName={successData.recipientName}
+                      amount={successData.amount}
+                      currency={successData.currency}
+                      senderName={currentUser?.fullName || 'Usuario'}
+                      senderDocument={currentUser?.documentNumber || ''}
+                      transactionId={successData.transactionId}
+                      transactionDate={successData.transactionDate}
+                      onClose={() => {
+                        setShowSuccessScreen(false);
+                        setSuccessData(null);
+                        setSelectedContact(null);
+                      }}
+                    />
+                  )}
 
                   {/* Pantalla de todos los movimientos */}
                   <AllMovementsScreen
