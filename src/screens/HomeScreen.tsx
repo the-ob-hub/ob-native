@@ -19,6 +19,7 @@ import { userService } from '../services/api/userService';
 import { cognitoService } from '../services/auth/cognitoService';
 import { movementsService } from '../services/api/movementsService';
 import { transferService } from '../services/api/transferService';
+import { contactsService } from '../services/api/contactsService';
 import { MovementCard } from '../components/MovementCard';
 import { Movement } from '../models';
 import { AllMovementsScreen } from './AllMovementsScreen';
@@ -125,6 +126,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
 
   /**
    * Función para manejar la transferencia
+   * Verifica si el contacto es usuario de Onda Bank antes de transferir
    */
   const handleTransfer = async (
     amount: number,
@@ -160,13 +162,51 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
         description: `Transferencia a ${contact.fullName}`,
       };
 
+      // Verificar si el contacto tiene teléfono y si es usuario de Onda Bank
+      let destinationUserId: string | null = null;
+      
+      if (contact.phone) {
+        // Verificar si el teléfono corresponde a un usuario de Onda Bank
+        addLog(`🔍 HomeScreen - Verificando si ${contact.phone} es usuario de Onda Bank...`);
+        const userByPhone = await userService.getUserByPhone(contact.phone);
+        
+        if (userByPhone) {
+          // Usuario encontrado, usar su ID
+          destinationUserId = userByPhone.id;
+          addLog(`✅ HomeScreen - Usuario encontrado: ${userByPhone.fullName} (ID: ${destinationUserId})`);
+        } else {
+          // Usuario no encontrado, mostrar error y no permitir transferir
+          const errorMsg = 'El usuario no puede recibir el dinero porque no tiene usuario en Onda Bank';
+          addLog(`❌ HomeScreen - ${errorMsg}`);
+          setTransferError(errorMsg);
+          setIsTransferring(false);
+          Vibration.vibrate([100, 50, 100]); // Vibración de error
+          return;
+        }
+      } else if (contact.contactId) {
+        // Si tiene contactId pero no teléfono, usar el contactId directamente
+        // (confiar en que es válido, ya que viene del backend)
+        destinationUserId = contact.contactId;
+        addLog(`📤 HomeScreen - Usando contactId existente: ${destinationUserId}`);
+      }
+
       // Agregar destino según lo que esté disponible
-      if (contact.contactId) {
-        transferInput.destinationUserId = contact.contactId;
-        addLog(`📤 HomeScreen - Enviando a usuario de la app (contactId: ${contact.contactId})`);
+      if (destinationUserId) {
+        transferInput.destinationUserId = destinationUserId;
+        addLog(`📤 HomeScreen - Enviando a usuario de la app (userId: ${destinationUserId})`);
       } else if (contact.cvu) {
-        transferInput.destinationCvu = contact.cvu;
-        addLog(`📤 HomeScreen - Enviando a CVU: ${contact.cvu}`);
+        // TODO: Transferencia externa por CVU aún no está implementada
+        // Si no hay userId pero hay CVU, no permitir transferencia externa por CVU
+        const errorMsg = 'El usuario no puede recibir el dinero porque no tiene usuario en Onda Bank';
+        addLog(`❌ HomeScreen - ${errorMsg} (CVU externo no soportado aún)`);
+        setTransferError(errorMsg);
+        setIsTransferring(false);
+        Vibration.vibrate([100, 50, 100]); // Vibración de error
+        return;
+        
+        // Código comentado para cuando se implemente transferencia externa por CVU:
+        // transferInput.destinationCvu = contact.cvu;
+        // addLog(`📤 HomeScreen - Enviando a CVU externo: ${contact.cvu}`);
       } else {
         throw new Error('El contacto no tiene contactId ni CVU');
       }
@@ -179,6 +219,29 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
       }
 
       addLog(`✅ HomeScreen - Transferencia exitosa: ${response.data?.id || 'N/A'}`);
+      
+      // Guardar contacto localmente si tiene teléfono y no está guardado aún
+      if (contact.phone && destinationUserId && !contact.isSaved) {
+        try {
+          addLog(`💾 HomeScreen - Guardando contacto localmente: ${contact.fullName} (Tel: ${contact.phone})`);
+          
+          const contactData = {
+            contactId: destinationUserId,
+            alias: contact.alias || undefined,
+          };
+          
+          const saveResult = await contactsService.addContact(contactData);
+          
+          if (saveResult.success) {
+            addLog(`✅ HomeScreen - Contacto guardado exitosamente en el backend`);
+          } else {
+            addLog(`⚠️ HomeScreen - No se pudo guardar el contacto, pero la transferencia fue exitosa`);
+          }
+        } catch (error: any) {
+          // No fallar la transferencia si falla el guardado del contacto
+          addLog(`⚠️ HomeScreen - Error guardando contacto (transferencia exitosa): ${error.message}`);
+        }
+      }
       
       // Refrescar balances y movimientos después de la transferencia
       addLog(`🔄 HomeScreen - Refrescando balances y movimientos...`);
