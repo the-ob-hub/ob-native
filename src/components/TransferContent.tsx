@@ -357,6 +357,22 @@ export const TransferContent: React.FC<TransferContentProps> = ({
         visible={isAddContactSheetVisible}
         onClose={() => setIsAddContactSheetVisible(false)}
         onAddContact={handleAddContact}
+        onContactSelect={(contactData) => {
+          // Crear UserContact completo desde los datos
+          const contact: UserContact = {
+            contactId: contactData.contactId,
+            cvu: contactData.cvu,
+            alias: contactData.alias,
+            fullName: contactData.fullName || 'Contacto sin nombre',
+            phone: contactData.phone,
+            hasDolarApp: !!contactData.contactId,
+            isSaved: true,
+          };
+          
+          // Seleccionar contacto para abrir pantalla de transferencia
+          addLog(`🚀 TransferContent - Abriendo transferencia para contacto recién agregado: ${contact.fullName}`);
+          onContactSelect(contact);
+        }}
       />
     </View>
   );

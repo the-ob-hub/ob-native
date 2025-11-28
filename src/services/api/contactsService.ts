@@ -12,11 +12,7 @@ import {
 } from '../../models/contacts';
 import { logger } from '../../utils/logger';
 import { apiClient } from './base';
-
-// Importar JSONs mock
-import recentContactsMock from '../../mocks/recentContacts.json';
-import allContactsMock from '../../mocks/allContacts.json';
-import searchContactsMock from '../../mocks/searchContacts.json';
+import { db } from '../../data/database';
 
 class ContactsService {
   /**
@@ -31,19 +27,27 @@ class ContactsService {
     logger.log(`📞 ContactsService.getRecentContacts() - Iniciando`);
     logger.log(`📋 ContactsService.getRecentContacts() - Params: ${JSON.stringify(params)}`);
     
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Asegurar que la base esté inicializada
+    await db.init();
     
-    const response = recentContactsMock as RecentContactsResponse;
+    // Obtener todos los contactos y filtrar por fecha de última transacción
+    const allContacts = await db.getAllContacts();
     
-    // Aplicar límite si se especifica
-    if (params?.limit && params.limit < response.contacts.length) {
-      response.contacts = response.contacts.slice(0, params.limit);
-      logger.log(`✂️ ContactsService.getRecentContacts() - Aplicando límite: ${params.limit}`);
-    }
+    // Filtrar contactos con transacciones recientes y ordenar por fecha
+    const recentContacts = allContacts
+      .filter(c => c.lastTransactionDate)
+      .sort((a, b) => {
+        const dateA = new Date(a.lastTransactionDate || 0).getTime();
+        const dateB = new Date(b.lastTransactionDate || 0).getTime();
+        return dateB - dateA;
+      })
+      .slice(0, params?.limit || 10);
     
-    logger.log(`✅ ContactsService.getRecentContacts() - Retornando ${response.contacts.length} contactos`);
-    return response;
+    logger.log(`✅ ContactsService.getRecentContacts() - Retornando ${recentContacts.length} contactos`);
+    return {
+      success: true,
+      contacts: recentContacts,
+    };
   }
 
   /**
@@ -58,20 +62,24 @@ class ContactsService {
     logger.log(`📞 ContactsService.getAllContacts() - Iniciando`);
     logger.log(`📋 ContactsService.getAllContacts() - Params: ${JSON.stringify(params)}`);
     
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Asegurar que la base esté inicializada
+    await db.init();
     
-    const response = allContactsMock as AllContactsResponse;
+    // Obtener todos los contactos de la base de datos
+    let contacts = await db.getAllContacts();
     
     // Filtrar contactos guardados si se especifica
     if (params?.includeSaved === false) {
-      const before = response.contacts.length;
-      response.contacts = response.contacts.filter(c => !c.isSaved);
-      logger.log(`✂️ ContactsService.getAllContacts() - Filtrados contactos guardados: ${before} -> ${response.contacts.length}`);
+      const before = contacts.length;
+      contacts = contacts.filter(c => !c.isSaved);
+      logger.log(`✂️ ContactsService.getAllContacts() - Filtrados contactos guardados: ${before} -> ${contacts.length}`);
     }
     
-    logger.log(`✅ ContactsService.getAllContacts() - Retornando ${response.contacts.length} contactos`);
-    return response;
+    logger.log(`✅ ContactsService.getAllContacts() - Retornando ${contacts.length} contactos`);
+    return {
+      success: true,
+      contacts,
+    };
   }
 
   /**
@@ -87,38 +95,22 @@ class ContactsService {
     logger.log(`📋 ContactsService.searchContacts() - Query: "${params.query}"`);
     logger.log(`📋 ContactsService.searchContacts() - Params: ${JSON.stringify(params)}`);
     
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Asegurar que la base esté inicializada
+    await db.init();
     
-    const { query } = params;
-    const queryLower = query.toLowerCase();
-    
-    // Buscar en todos los contactos disponibles (allContactsMock) en lugar de solo searchContactsMock
-    const allContactsData = allContactsMock as AllContactsResponse;
-    
-    // Filtrar contactos que coincidan con la búsqueda
-    const filteredContacts = allContactsData.contacts.filter(contact => {
-      return (
-        contact.fullName.toLowerCase().includes(queryLower) ||
-        contact.alias?.toLowerCase().includes(queryLower) ||
-        contact.phone?.includes(query) ||
-        contact.cvu?.includes(query)
-      );
-    });
+    // Buscar en la base de datos
+    const filteredContacts = await db.searchContacts(params.query);
     
     // Separar en contactos con historial y usuarios sin historial
-    // Un contacto tiene historial si tiene lastTransactionDate o transactionCount > 0
     const contactsWithHistory = filteredContacts.filter(c => 
-      (c.metadata?.lastTransactionDate || c.lastTransactionDate) ||
-      (c.metadata?.transactionCount || c.transactionCount || 0) > 0
+      c.lastTransactionDate || (c.transactionCount || 0) > 0
     );
     
     // Usuarios sin historial: tienen contactId pero no tienen transacciones
     const usersWithoutHistory = filteredContacts.filter(c => 
       c.contactId && 
-      !c.metadata?.lastTransactionDate && 
       !c.lastTransactionDate &&
-      (c.metadata?.transactionCount || c.transactionCount || 0) === 0
+      (c.transactionCount || 0) === 0
     );
     
     // Contactos externos (sin contactId pero con CVU)
@@ -139,7 +131,7 @@ class ContactsService {
           fullName: ext.fullName,
           hasDolarApp: false,
           hasPreviousTransaction: !!ext.lastTransactionDate,
-          lastTransactionDate: ext.metadata?.lastTransactionDate || ext.lastTransactionDate,
+          lastTransactionDate: ext.lastTransactionDate,
         })),
       },
     };

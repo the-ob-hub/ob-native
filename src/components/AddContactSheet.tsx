@@ -15,8 +15,9 @@ import {
 import { COLORS, SPACING, FONTS } from '../constants';
 import { useLogs } from '../contexts/LogContext';
 import { userService } from '../services/api/userService';
-import { contactsService } from '../services/api/contactsService';
+import { db } from '../data/database';
 import { User } from '../models';
+import { UserContact } from '../models/contacts';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.8;
@@ -29,13 +30,22 @@ interface AddContactSheetProps {
     alias?: string;
     fullName?: string;
     phone?: string;
+    contactId?: string;
   }) => void;
+  onContactSelect?: (contact: {
+    contactId?: string;
+    cvu?: string;
+    alias?: string;
+    fullName?: string;
+    phone?: string;
+  }) => void; // Callback para seleccionar contacto después de agregarlo
 }
 
 export const AddContactSheet: React.FC<AddContactSheetProps> = ({
   visible,
   onClose,
   onAddContact,
+  onContactSelect,
 }) => {
   const slideAnim = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
@@ -158,82 +168,69 @@ export const AddContactSheet: React.FC<AddContactSheetProps> = ({
     try {
       addLog(`➕ AddContactSheet - Agregando contacto: ${nickname || fullName || 'Sin nombre'} (Tel: ${phone})`);
       
-      // Si encontramos un usuario, guardarlo como contacto con nickname
+      // Si encontramos un usuario, guardarlo localmente como contacto con nickname
       if (foundUser) {
         addLog(`✅ AddContactSheet - Usuario encontrado en la base: ${foundUser.fullName} (ID: ${foundUser.id})`);
         
-        const contactData = {
-          contactId: foundUser.id, // ID del usuario encontrado (KSUID con prefijo usr-)
-          alias: nickname || undefined, // Nickname opcional que el usuario puede personalizar
-          // No enviar CVU si tenemos contactId, el backend lo obtendrá del usuario
+        // Crear contacto completo para guardar localmente
+        const contactToSave: UserContact = {
+          contactId: foundUser.id,
+          cvu: foundUser.id, // Usar ID como CVU temporalmente
+          fullName: foundUser.fullName || 'Usuario sin nombre',
+          alias: nickname || undefined,
+          phone: phone,
+          hasDolarApp: true,
+          isSaved: true,
         };
-
-        // Guardar en el servicio de contactos (llama al backend POST /api/v1/contacts)
-        const result = await contactsService.addContact(contactData);
         
-        if (result.success) {
-          addLog(`✅ AddContactSheet - Contacto guardado exitosamente en el backend`);
-          addLog(`📋 AddContactSheet - ContactId: ${result.contact.contactId}`);
-          addLog(`📋 AddContactSheet - Alias: ${result.contact.alias || 'N/A'}`);
+        // Guardar en la base de datos SQLite
+        try {
+          // Asegurar que la base esté inicializada
+          await db.init();
           
-          // Llamar al callback con los datos completos del contacto guardado
+          // Guardar contacto en la base de datos
+          await db.saveContact(contactToSave);
+          addLog(`✅ AddContactSheet - Contacto guardado exitosamente en base de datos`);
+          addLog(`📋 AddContactSheet - ContactId: ${contactToSave.contactId}`);
+          addLog(`📋 AddContactSheet - Alias: ${contactToSave.alias || 'N/A'}`);
+          
+          // Llamar al callback de agregar contacto
           onAddContact({
-            contactId: result.contact.contactId || foundUser.id,
-            cvu: result.contact.cvu,
-            alias: result.contact.alias || nickname || undefined,
-            fullName: result.contact.fullName || foundUser.fullName || '',
-            phone: phone,
+            contactId: contactToSave.contactId,
+            cvu: contactToSave.cvu,
+            alias: contactToSave.alias,
+            fullName: contactToSave.fullName,
+            phone: contactToSave.phone,
           });
           
+          // Cerrar el sheet primero
           handleClose();
-        } else {
-          Alert.alert('Error', 'No se pudo guardar el contacto en el backend');
+          
+          // Luego seleccionar el contacto para abrir pantalla de transferencia
+          // Usar setTimeout para asegurar que el sheet se cierre antes
+          setTimeout(() => {
+            if (onContactSelect) {
+              addLog(`🚀 AddContactSheet - Abriendo pantalla de transferencia para: ${contactToSave.fullName}`);
+              onContactSelect({
+                contactId: contactToSave.contactId,
+                cvu: contactToSave.cvu,
+                alias: contactToSave.alias,
+                fullName: contactToSave.fullName,
+                phone: contactToSave.phone,
+              });
+            }
+          }, 300);
+        } catch (error: any) {
+          addLog(`❌ AddContactSheet - Error guardando contacto en base de datos: ${error.message}`);
+          Alert.alert('Error', 'No se pudo guardar el contacto');
         }
       } else {
-        // Usuario no encontrado en la base, agregar como contacto externo con nombre manual
-        addLog(`⚠️ AddContactSheet - Usuario no encontrado, agregando como contacto externo`);
-        
-        // Para contacto externo, necesitamos CVU
-        if (!cvu && !nickname) {
-          Alert.alert('Error', 'Para contactos externos, necesitas ingresar un nombre');
-          return;
-        }
-        
-        // Si tiene CVU, intentar guardarlo en el backend
-        if (cvu) {
-          try {
-            const contactData = {
-              cvu: cvu,
-              alias: nickname || undefined,
-            };
-            
-            const result = await contactsService.addContact(contactData);
-            
-            if (result.success) {
-              addLog(`✅ AddContactSheet - Contacto externo guardado exitosamente`);
-              onAddContact({
-                cvu: result.contact.cvu || cvu,
-                alias: result.contact.alias || nickname || undefined,
-                fullName: result.contact.fullName || nickname || 'Contacto externo',
-                phone: phone,
-              });
-              handleClose();
-              return;
-            }
-          } catch (error: any) {
-            addLog(`⚠️ AddContactSheet - Error guardando contacto externo: ${error.message}`);
-            // Continuar con guardado local como fallback
-          }
-        }
-        
-        // Fallback: guardar localmente (sin backend)
-        onAddContact({
-          fullName: nickname || 'Contacto sin nombre',
-          phone: phone,
-          cvu: cvu || undefined,
-        });
-        
-        handleClose();
+        // Usuario no encontrado - mostrar error
+        addLog(`⚠️ AddContactSheet - Usuario no encontrado en Onda Bank`);
+        Alert.alert(
+          'Usuario no encontrado',
+          'El usuario no puede recibir el dinero porque no tiene usuario en Onda Bank'
+        );
       }
     } catch (error: any) {
       addLog(`❌ AddContactSheet - Error agregando contacto: ${error.message}`);
