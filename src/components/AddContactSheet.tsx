@@ -160,36 +160,77 @@ export const AddContactSheet: React.FC<AddContactSheetProps> = ({
       
       // Si encontramos un usuario, guardarlo como contacto con nickname
       if (foundUser) {
+        addLog(`✅ AddContactSheet - Usuario encontrado en la base: ${foundUser.fullName} (ID: ${foundUser.id})`);
+        
         const contactData = {
-          contactId: foundUser.id,
-          alias: nickname || undefined,
-          cvu: foundUser.id, // Usar ID como CVU
+          contactId: foundUser.id, // ID del usuario encontrado (KSUID con prefijo usr-)
+          alias: nickname || undefined, // Nickname opcional que el usuario puede personalizar
+          // No enviar CVU si tenemos contactId, el backend lo obtendrá del usuario
         };
 
-        // Guardar en el servicio de contactos
+        // Guardar en el servicio de contactos (llama al backend POST /api/v1/contacts)
         const result = await contactsService.addContact(contactData);
         
         if (result.success) {
-          addLog(`✅ AddContactSheet - Contacto guardado exitosamente`);
+          addLog(`✅ AddContactSheet - Contacto guardado exitosamente en el backend`);
+          addLog(`📋 AddContactSheet - ContactId: ${result.contact.contactId}`);
+          addLog(`📋 AddContactSheet - Alias: ${result.contact.alias || 'N/A'}`);
           
-          // Llamar al callback con los datos completos
+          // Llamar al callback con los datos completos del contacto guardado
           onAddContact({
-            contactId: foundUser.id,
-            cvu: foundUser.id,
-            alias: nickname || undefined,
-            fullName: nickname || foundUser.fullName || '',
+            contactId: result.contact.contactId || foundUser.id,
+            cvu: result.contact.cvu,
+            alias: result.contact.alias || nickname || undefined,
+            fullName: result.contact.fullName || foundUser.fullName || '',
             phone: phone,
           });
           
           handleClose();
         } else {
-          Alert.alert('Error', 'No se pudo guardar el contacto');
+          Alert.alert('Error', 'No se pudo guardar el contacto en el backend');
         }
       } else {
-        // Usuario no encontrado, agregar como contacto externo con nombre manual
+        // Usuario no encontrado en la base, agregar como contacto externo con nombre manual
+        addLog(`⚠️ AddContactSheet - Usuario no encontrado, agregando como contacto externo`);
+        
+        // Para contacto externo, necesitamos CVU
+        if (!cvu && !nickname) {
+          Alert.alert('Error', 'Para contactos externos, necesitas ingresar un nombre');
+          return;
+        }
+        
+        // Si tiene CVU, intentar guardarlo en el backend
+        if (cvu) {
+          try {
+            const contactData = {
+              cvu: cvu,
+              alias: nickname || undefined,
+            };
+            
+            const result = await contactsService.addContact(contactData);
+            
+            if (result.success) {
+              addLog(`✅ AddContactSheet - Contacto externo guardado exitosamente`);
+              onAddContact({
+                cvu: result.contact.cvu || cvu,
+                alias: result.contact.alias || nickname || undefined,
+                fullName: result.contact.fullName || nickname || 'Contacto externo',
+                phone: phone,
+              });
+              handleClose();
+              return;
+            }
+          } catch (error: any) {
+            addLog(`⚠️ AddContactSheet - Error guardando contacto externo: ${error.message}`);
+            // Continuar con guardado local como fallback
+          }
+        }
+        
+        // Fallback: guardar localmente (sin backend)
         onAddContact({
           fullName: nickname || 'Contacto sin nombre',
           phone: phone,
+          cvu: cvu || undefined,
         });
         
         handleClose();

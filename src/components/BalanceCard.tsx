@@ -47,35 +47,47 @@ const BalanceDisplay: React.FC<{
 }> = ({ balance, currency, onCollapse, isActive, shouldAnimate = true }) => {
   const animatedBalance = useSharedValue(balance);
   const [displayBalance, setDisplayBalance] = useState(balance);
-  const previousBalanceRef = useRef<number>(balance);
+  const previousBalanceRef = useRef<number | null>(null); // Inicializar como null para detectar primera carga
   const balanceBeforeSwipeRef = useRef<number>(balance);
 
   // Efecto para cuando cambia el balance
   useEffect(() => {
-    if (isActive && previousBalanceRef.current !== balance) {
-      // Balance cambió
-      if (shouldAnimate) {
-        // Animar desde el valor anterior al nuevo
-        animatedBalance.value = withTiming(balance, {
-          duration: 800,
-        });
-      } else {
-        // Guardar el valor anterior antes de actualizar sin animar (durante el swipe)
-        balanceBeforeSwipeRef.current = previousBalanceRef.current;
+    if (isActive) {
+      // Si es la primera vez que se carga (previousBalanceRef es null), usar el balance actual sin animar
+      if (previousBalanceRef.current === null) {
         animatedBalance.value = balance;
+        previousBalanceRef.current = balance;
+        balanceBeforeSwipeRef.current = balance;
+        return;
       }
-      previousBalanceRef.current = balance;
+      
+      // Si el balance cambió desde el último valor conocido
+      if (previousBalanceRef.current !== balance) {
+        if (shouldAnimate) {
+          // Animar desde el último valor conocido al nuevo
+          animatedBalance.value = withTiming(balance, {
+            duration: 800,
+          });
+        } else {
+          // Guardar el valor anterior antes de actualizar sin animar (durante el swipe)
+          balanceBeforeSwipeRef.current = previousBalanceRef.current;
+          animatedBalance.value = balance;
+        }
+        previousBalanceRef.current = balance;
+      }
     } else if (!isActive) {
-      // Si no está activo, mantener el valor actual
+      // Si no está activo, mantener el valor actual pero preservar el último valor conocido
       animatedBalance.value = balance;
-      previousBalanceRef.current = balance;
+      if (previousBalanceRef.current === null) {
+        previousBalanceRef.current = balance;
+      }
       balanceBeforeSwipeRef.current = balance;
     }
   }, [balance, isActive]);
 
   // Efecto separado para cuando shouldAnimate cambia a true después del swipe
   useEffect(() => {
-    if (isActive && shouldAnimate && previousBalanceRef.current === balance) {
+    if (isActive && shouldAnimate && previousBalanceRef.current !== null && previousBalanceRef.current === balance) {
       // shouldAnimate cambió a true después del swipe, animar desde el valor guardado
       const startValue = balanceBeforeSwipeRef.current;
       animatedBalance.value = startValue; // Reset al valor anterior

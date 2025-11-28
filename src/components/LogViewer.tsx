@@ -150,12 +150,15 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <TouchableOpacity 
+          style={styles.overlayTouchable}
+          activeOpacity={1}
+          onPress={() => setIsChecksOpen(false)}
+        />
+        <View style={styles.container} pointerEvents="box-none">
+          <View style={styles.containerInner} pointerEvents="auto">
           <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <Text style={styles.title}>Logs de Consola</Text>
-              <Text style={styles.versionText}>v2.2.7</Text>
-            </View>
+            <Text style={styles.title}>Logs de Consola</Text>
             <View style={styles.headerButtons}>
               {/* Botón Checks con dropdown */}
               <View style={styles.checksContainer}>
@@ -174,6 +177,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
                         setIsChecksOpen(false);
                       }} 
                       style={styles.healthButton}
+                      activeOpacity={0.7}
                     >
                       <Text style={styles.healthButtonText}>Health API</Text>
                     </TouchableOpacity>
@@ -183,6 +187,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
                         setIsChecksOpen(false);
                       }} 
                       style={styles.healthButton}
+                      activeOpacity={0.7}
                     >
                       <Text style={styles.healthButtonText}>Diagnóstico API</Text>
                     </TouchableOpacity>
@@ -192,6 +197,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
                         setIsChecksOpen(false);
                       }} 
                       style={styles.healthButton}
+                      activeOpacity={0.7}
                     >
                       <Text style={styles.healthButtonText}>Metro</Text>
                     </TouchableOpacity>
@@ -225,6 +231,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
               ))
             )}
           </ScrollView>
+          </View>
         </View>
       </View>
     </Modal>
@@ -237,12 +244,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  overlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   container: {
     height: SCREEN_HEIGHT * 0.8,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'transparent',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 20,
+    zIndex: 1000,
+  },
+  containerInner: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -252,30 +274,25 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    backgroundColor: '#1a1a1a', // Fondo sólido para que los logs no pasen por encima
+    zIndex: 10002, // Mayor que el dropdown y el ScrollView
+    position: 'relative',
   },
   title: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  versionText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#888',
-  },
   headerButtons: {
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
+    zIndex: 10003, // Aún mayor para los botones
+    position: 'relative',
   },
   checksContainer: {
     position: 'relative',
-    zIndex: 2000, // Mayor z-index para estar sobre todo el contenido
+    zIndex: 10004, // Mayor z-index para estar sobre todo el contenido
   },
   checksButton: {
     flexDirection: 'row',
@@ -302,19 +319,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
     backgroundColor: '#2a2a2a',
     borderRadius: 8,
-    minWidth: 100,
+    minWidth: 150,
+    paddingVertical: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 10000, // Muy alto para estar sobre todo
-    zIndex: 10000, // Muy alto para estar sobre todo
+    zIndex: 10005, // Mayor que todo para estar siempre por encima
   },
   healthButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: '#10B981',
     borderRadius: 8,
+    marginBottom: 4,
+    marginHorizontal: 4,
+    marginTop: 4,
   },
   healthButtonText: {
     color: '#FFFFFF',
@@ -357,6 +378,7 @@ const styles = StyleSheet.create({
   },
   logsContainer: {
     flex: 1,
+    zIndex: 1, // Menor que el header para que quede debajo
   },
   logsContent: {
     padding: 16,

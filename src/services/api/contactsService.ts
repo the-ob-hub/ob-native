@@ -147,7 +147,10 @@ class ContactsService {
 
   /**
    * Agregar contacto manualmente
-   * POST /api/contacts
+   * POST /api/v1/contacts
+   * 
+   * Guarda un contacto en el backend. Si el contacto tiene contactId (usuario de la app),
+   * el backend verifica que el usuario existe antes de guardarlo.
    */
   async addContact(contact: {
     contactId?: string;
@@ -155,20 +158,103 @@ class ContactsService {
     alias?: string;
     notes?: string;
   }): Promise<{ success: boolean; contact: UserContact }> {
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
-    return {
-      success: true,
-      contact: {
-        contactId: contact.contactId,
-        cvu: contact.cvu,
-        alias: contact.alias,
-        fullName: contact.alias || 'Contacto sin nombre',
-        hasDolarApp: !!contact.contactId,
-        isSaved: true,
-      },
-    };
+    try {
+      logger.log(`➕ ContactsService.addContact() - Agregando contacto`);
+      logger.log(`📋 ContactsService.addContact() - ContactId: ${contact.contactId || 'N/A'}`);
+      logger.log(`📋 ContactsService.addContact() - CVU: ${contact.cvu || 'N/A'}`);
+      logger.log(`📋 ContactsService.addContact() - Alias: ${contact.alias || 'N/A'}`);
+      
+      // Validar que tenga al menos contactId o cvu
+      if (!contact.contactId && !contact.cvu) {
+        throw new Error('Se requiere contactId o cvu para agregar contacto');
+      }
+      
+      // Preparar payload para el backend (snake_case)
+      const payload: any = {};
+      if (contact.contactId) {
+        payload.contact_id = contact.contactId;
+      }
+      if (contact.cvu) {
+        payload.cvu = contact.cvu;
+      }
+      if (contact.alias) {
+        payload.alias = contact.alias;
+      }
+      if (contact.notes) {
+        payload.notes = contact.notes;
+      }
+      
+      logger.log(`📤 ContactsService.addContact() - Payload: ${JSON.stringify(payload)}`);
+      
+      // Llamar al backend
+      const response = await apiClient.post<{
+        success: boolean;
+        contact: {
+          contactId?: string;
+          cvu?: string;
+          fullName: string;
+          alias?: string;
+          phone?: string;
+          hasDolarApp: boolean;
+          isSaved: boolean;
+        };
+        error?: string;
+      }>('/api/v1/contacts', payload);
+      
+      logger.log(`✅ ContactsService.addContact() - Respuesta del backend recibida`);
+      logger.log(`📊 ContactsService.addContact() - Success: ${response.success}`);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Error al agregar contacto');
+      }
+      
+      if (!response.contact) {
+        throw new Error('No se recibió información del contacto guardado');
+      }
+      
+      // Transformar respuesta del backend al formato de la app
+      const userContact: UserContact = {
+        contactId: response.contact.contactId,
+        cvu: response.contact.cvu,
+        alias: response.contact.alias,
+        fullName: response.contact.fullName,
+        phone: response.contact.phone,
+        hasDolarApp: response.contact.hasDolarApp,
+        isSaved: response.contact.isSaved,
+      };
+      
+      logger.log(`✅ ContactsService.addContact() - Contacto guardado exitosamente: ${userContact.fullName}`);
+      
+      return {
+        success: true,
+        contact: userContact,
+      };
+    } catch (error: any) {
+      logger.error(`❌ ContactsService.addContact() - Error: ${error.message}`);
+      logger.error(`❌ ContactsService.addContact() - Error stack: ${error.stack || 'N/A'}`);
+      
+      // Si el endpoint no existe aún en el backend, usar mock como fallback
+      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+        logger.log(`⚠️ ContactsService.addContact() - Endpoint no disponible, usando mock como fallback`);
+        
+        // Simular delay de red
+        await new Promise(resolve => setTimeout(resolve, 400));
+        
+        return {
+          success: true,
+          contact: {
+            contactId: contact.contactId,
+            cvu: contact.cvu,
+            alias: contact.alias,
+            fullName: contact.alias || 'Contacto sin nombre',
+            hasDolarApp: !!contact.contactId,
+            isSaved: true,
+          },
+        };
+      }
+      
+      throw error;
+    }
   }
 
   /**
