@@ -180,12 +180,15 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   onExpandedChange,
   onContactSelect,
 }) => {
-  // Validar que haya balances
-  if (!balances || balances.length === 0) {
-    balances = [
-      { currency: 'USDc', amount: 0, availableActions: ['agregar', 'enviar', 'exchange', 'pagar'] },
-    ];
-  }
+  // Validar que haya balances - usar useMemo para evitar problemas con hooks
+  const validBalances = React.useMemo(() => {
+    if (!balances || balances.length === 0) {
+      return [
+        { currency: 'USDc', amount: 0, availableActions: ['agregar', 'enviar', 'exchange', 'pagar'] },
+      ];
+    }
+    return balances;
+  }, [balances]);
 
   const [currentBalanceIndex, setCurrentBalanceIndex] = useState(0);
   const [currentState, setCurrentState] = useState<BalanceCardState>(
@@ -197,7 +200,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   const [menuAnimationDelay, setMenuAnimationDelay] = useState(0); // Delay para animación del menú
   const { addLog } = useLogs();
 
-  const currentBalance = balances[currentBalanceIndex];
+  const currentBalance = validBalances[currentBalanceIndex];
 
   // Shared values para swipe
   const translateX = useSharedValue(-(currentBalanceIndex * SCREEN_WIDTH));
@@ -216,9 +219,9 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
   // Función para cambiar de balance (desde worklet)
   const changeBalance = useCallback((newIndex: number, swipeDirection?: 'left' | 'right') => {
-    if (newIndex >= 0 && newIndex < balances.length && newIndex !== currentBalanceIndex) {
-      const fromCurrency = balances[currentBalanceIndex].currency;
-      const toCurrency = balances[newIndex].currency;
+    if (newIndex >= 0 && newIndex < validBalances.length && newIndex !== currentBalanceIndex) {
+      const fromCurrency = validBalances[currentBalanceIndex].currency;
+      const toCurrency = validBalances[newIndex].currency;
       
       // Trackear el evento de swipe
       if (swipeDirection) {
@@ -237,7 +240,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
       // Activar animación de números después del swipe
       enableBalanceAnimation();
     }
-  }, [balances, currentBalanceIndex, addLog, enableBalanceAnimation]);
+  }, [validBalances, currentBalanceIndex, addLog, enableBalanceAnimation]);
 
   // Gesture handler para swipe horizontal (solo cuando está COLLAPSED)
   const panGesture = Gesture.Pan()
@@ -262,7 +265,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         if (event.translationX > 0 && currentBalanceIndex > 0) {
           // Swipe derecha -> balance anterior
           newIndex = currentBalanceIndex - 1;
-        } else if (event.translationX < 0 && currentBalanceIndex < balances.length - 1) {
+        } else if (event.translationX < 0 && currentBalanceIndex < validBalances.length - 1) {
           // Swipe izquierda -> balance siguiente
           newIndex = currentBalanceIndex + 1;
         }
@@ -308,7 +311,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   }, [currentBalanceIndex]);
 
   // Estilo animado para el contenedor de cards
-  const cardStackWidth = SCREEN_WIDTH * balances.length;
+  const cardStackWidth = SCREEN_WIDTH * validBalances.length;
   const cardStackStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateX: translateX.value }],
@@ -441,10 +444,10 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         <BalanceBackground currency={balance.currency} index={index} />
 
         {/* Indicadores de posición - Dentro del card cuando está expandido */}
-        {isExpandedWithTransfer && balances.length > 1 && (
+        {isExpandedWithTransfer && validBalances.length > 1 && (
           <View style={styles.indicatorsInsideCard}>
             <BalanceIndicators 
-              total={balances.length} 
+              total={validBalances.length} 
               currentIndex={currentBalanceIndex}
             />
           </View>
@@ -536,16 +539,16 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       {/* Indicadores de posición - Fuera del card stack solo cuando NO está expandido con transferencia */}
-      {balances.length > 1 && !isExpandedWithTransfer && (
+      {validBalances.length > 1 && !isExpandedWithTransfer && (
         <BalanceIndicators 
-          total={balances.length} 
+          total={validBalances.length} 
           currentIndex={currentBalanceIndex}
         />
       )}
       
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.cardStackContainer, cardStackStyle]}>
-          {balances.map((balance, index) => renderCard(balance, index))}
+          {validBalances.map((balance, index) => renderCard(balance, index))}
         </Animated.View>
       </GestureDetector>
     </Animated.View>

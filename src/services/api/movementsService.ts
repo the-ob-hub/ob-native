@@ -6,24 +6,37 @@ import { apiClient } from './base';
 import { BackendMovement, BackendMovementsResponse } from './types';
 import { Movement, Currency } from '../../models';
 import { logger } from '../../utils/logger';
+import { validateUserId } from '../../utils/helpers';
 
 /**
  * Obtiene los movimientos de un usuario desde el backend
  * GET /api/v1/users/:userId/movements
  * 
  * Transforma la respuesta del backend al formato esperado por la app
+ * El userId puede ser UUID o KSUID (con o sin prefijo usr-)
  */
 export const movementsService = {
   async getMovementsByUser(userId: string, limit?: number, offset?: number, signal?: AbortSignal): Promise<Movement[]> {
     try {
-      logger.log(`📊 MovementsService - Obteniendo movimientos para userId: ${userId}`);
+      // Validar userId
+      const validatedUserId = validateUserId(userId);
+      if (!validatedUserId) {
+        throw new Error(`Invalid user ID format: ${userId}`);
+      }
+      
+      logger.log(`📊 MovementsService - Obteniendo movimientos para userId: ${validatedUserId}`);
+      
+      // Si tiene prefijo usr-, lo removemos para el backend
+      const userIdForBackend = validatedUserId.startsWith('usr-') 
+        ? validatedUserId.substring(4) 
+        : validatedUserId;
       
       // Construir query params
       const params = new URLSearchParams();
       if (limit) params.append('limit', limit.toString());
       if (offset) params.append('offset', offset.toString());
       const queryString = params.toString();
-      const endpoint = `/api/v1/users/${userId}/movements${queryString ? `?${queryString}` : ''}`;
+      const endpoint = `/api/v1/users/${userIdForBackend}/movements${queryString ? `?${queryString}` : ''}`;
       
       // Llamar al backend
       const backendResponse = await apiClient.get<BackendMovementsResponse>(endpoint, undefined, signal);

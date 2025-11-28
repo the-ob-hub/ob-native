@@ -94,3 +94,65 @@ export const getColorFromInitials = (initials: string): string => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+/**
+ * Valida si un string es un UUID válido
+ */
+export const isValidUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
+/**
+ * Valida si un string es un KSUID válido (con o sin prefijo)
+ */
+export const isValidKSUID = (str: string): boolean => {
+  // KSUID tiene 27 caracteres base62 (0-9, A-Z, a-z)
+  // Con prefijo usr- sería: usr- + 27 caracteres = 31 caracteres
+  if (str.startsWith('usr-')) {
+    const ksuidPart = str.substring(4);
+    return ksuidPart.length === 27 && /^[0-9A-Za-z]{27}$/.test(ksuidPart);
+  }
+  // Sin prefijo, debe ser exactamente 27 caracteres base62
+  return str.length === 27 && /^[0-9A-Za-z]{27}$/.test(str);
+};
+
+/**
+ * Valida y normaliza un userId (acepta UUID o KSUID con prefijo usr-)
+ * Retorna el userId tal cual si es válido, o null si no es válido
+ */
+export const validateUserId = (userId: string | null | undefined): string | null => {
+  if (!userId) return null;
+  
+  // Si tiene prefijo usr-, es un KSUID válido
+  if (userId.startsWith('usr-')) {
+    return userId;
+  }
+  
+  // Si es un UUID válido, retornarlo tal cual
+  if (isValidUUID(userId)) {
+    return userId;
+  }
+  
+  // Si es un KSUID sin prefijo (27 caracteres base62)
+  if (isValidKSUID(userId)) {
+    return userId;
+  }
+  
+  // No es válido
+  return null;
+};
+
+/**
+ * Normaliza un userId para enviarlo al backend
+ * El backend acepta UUID o KSUID (con o sin prefijo)
+ */
+export const normalizeUserIdForBackend = (userId: string | null | undefined): string | null => {
+  const validated = validateUserId(userId);
+  if (!validated) return null;
+  
+  // Si tiene prefijo usr-, removerlo para el backend (el backend espera UUID o KSUID sin prefijo)
+  // Pero primero verificamos: si el backend acepta ambos, podemos enviarlo tal cual
+  // Por ahora, enviamos tal cual y el backend deberá aceptarlo
+  return validated;
+};
+

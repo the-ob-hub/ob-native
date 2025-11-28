@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView, Dimensions, Vibration, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Rect } from 'react-native-svg';
@@ -18,9 +18,11 @@ import { balanceService } from '../services/api/balanceService';
 import { userService } from '../services/api/userService';
 import { cognitoService } from '../services/auth/cognitoService';
 import { movementsService } from '../services/api/movementsService';
+import { transferService } from '../services/api/transferService';
 import { MovementCard } from '../components/MovementCard';
 import { Movement } from '../models';
 import { AllMovementsScreen } from './AllMovementsScreen';
+import { validateUserId } from '../utils/helpers';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -40,6 +42,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [showAllMovements, setShowAllMovements] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
   
   // Control de llamadas en progreso para evitar duplicados
   const loadingRef = useRef({
@@ -104,50 +108,102 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
     }
   };
 
+  // Log inicial para verificar que el componente se monta
   useEffect(() => {
-    // Crear AbortController para cancelar operaciones cuando el componente se desmonte
-    const abortController = new AbortController();
-    const signal = abortController.signal;
-    
-    // Cargar datos iniciales de forma secuencial para evitar llamadas duplicadas
-    const loadInitialData = async () => {
-      try {
-        // Primero cargar datos del usuario (necesario para obtener el KSUID)
-        // Si retorna true, significa que se creó un usuario nuevo y AsyncStorage ya tiene el KSUID
-        const userCreated = await loadUserData(signal);
-        
-        // Luego cargar balances y movimientos en paralelo (ya tenemos el KSUID)
-        // Solo cargar si no se creó un usuario nuevo (porque loadUserData ya actualizó AsyncStorage)
-        // o si se creó uno nuevo, esperar un momento para asegurar que AsyncStorage se actualizó
-        if (userCreated) {
-          // Si se creó un usuario nuevo, esperar un momento para asegurar que AsyncStorage se actualizó
-          // Usar Promise para evitar problemas con setTimeout y hooks
-          await new Promise(resolve => setTimeout(resolve, 100));
-          await Promise.all([
-            loadBalances(signal),
-            loadMovements(signal),
-          ]);
-        } else {
-          // Si el usuario ya existía, cargar inmediatamente
-          await Promise.all([
-            loadBalances(signal),
-            loadMovements(signal),
-          ]);
-        }
-      } catch (error: any) {
-        // Ignorar AbortError (operación cancelada intencionalmente)
-        if (error.name !== 'AbortError') {
-          console.error('Error cargando datos iniciales:', error);
-        }
-      }
-    };
-    loadInitialData();
-    
-    // Cleanup: cancelar todas las operaciones async cuando el componente se desmonte
-    return () => {
-      abortController.abort();
-    };
+    console.log('🏠 HomeScreen - Componente montado');
+    addLog('🏠 HomeScreen - Componente montado');
   }, []);
+
+  // Resetear error cuando se abre la pantalla de transferencia
+  useEffect(() => {
+    if (showTransferScreen && transferError) {
+      // Resetear error cuando se abre la pantalla (el usuario puede intentar de nuevo)
+      setTransferError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTransferScreen]);
+
+  /**
+   * Función para manejar la transferencia
+   */
+  const handleTransfer = async (
+    amount: number,
+    sourceCurrency: Currency,
+    destinationCurrency: Currency,
+    contact: UserContact
+  ) => {
+    if (isTransferring) {
+      addLog('⚠️ HomeScreen - Transferencia ya en progreso, ignorando');
+      return;
+    }
+
+    try {
+      setIsTransferring(true);
+      setTransferError(null);
+      
+      addLog(`💸 HomeScreen - Iniciando transferencia: ${amount} ${destinationCurrency} (desde ${sourceCurrency}) a ${contact.fullName}`);
+      
+      // Obtener userId actual
+      const userId = await AsyncStorage.getItem('currentUserId');
+      if (!userId) {
+        throw new Error('No se encontró userId en AsyncStorage');
+      }
+
+      // Determinar assetType según la moneda
+      const assetType = sourceCurrency === 'USDc' ? 'crypto' : 'fiat';
+      
+      // Preparar input para la transferencia
+      const transferInput: any = {
+        assetCode: sourceCurrency,
+        assetType: assetType,
+        amount: amount,
+        description: `Transferencia a ${contact.fullName}`,
+      };
+
+      // Agregar destino según lo que esté disponible
+      if (contact.contactId) {
+        transferInput.destinationUserId = contact.contactId;
+        addLog(`📤 HomeScreen - Enviando a usuario de la app (contactId: ${contact.contactId})`);
+      } else if (contact.cvu) {
+        transferInput.destinationCvu = contact.cvu;
+        addLog(`📤 HomeScreen - Enviando a CVU: ${contact.cvu}`);
+      } else {
+        throw new Error('El contacto no tiene contactId ni CVU');
+      }
+
+      // Realizar la transferencia
+      const response = await transferService.transfer(userId, transferInput);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Error al realizar transferencia');
+      }
+
+      addLog(`✅ HomeScreen - Transferencia exitosa: ${response.data?.id || 'N/A'}`);
+      
+      // Refrescar balances y movimientos después de la transferencia
+      addLog(`🔄 HomeScreen - Refrescando balances y movimientos...`);
+      await Promise.all([
+        loadBalances(undefined, true),
+        loadMovements(undefined, true),
+      ]);
+
+      // Cerrar pantalla de transferencia después de un breve delay para mostrar éxito
+      setTimeout(() => {
+        setShowTransferScreen(false);
+        setSelectedContact(null);
+        setIsTransferring(false);
+        setTransferError(null);
+        Vibration.vibrate(100); // Vibración de éxito
+      }, 500);
+
+    } catch (error: any) {
+      const errorMessage = error.message || 'Error al realizar transferencia';
+      addLog(`❌ HomeScreen - Error en transferencia: ${errorMessage}`);
+      setTransferError(errorMessage);
+      setIsTransferring(false);
+      Vibration.vibrate([100, 50, 100]); // Vibración de error
+    }
+  };
 
   /**
    * Función para refrescar datos cuando el usuario hace pull-to-refresh
@@ -177,16 +233,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
     }
   };
 
-  const loadBalances = async (signal?: AbortSignal, isRefresh = false) => {
+  const loadBalances = useCallback(async (signal?: AbortSignal, isRefresh = false) => {
     // Evitar llamadas duplicadas
     if (loadingRef.current.balances) {
       addLog('⚠️ HomeScreen - loadBalances ya está en progreso, ignorando llamada duplicada');
       return;
     }
     
+    loadingRef.current.balances = true;
+    
     try {
-      loadingRef.current.balances = true;
-      
       if (isRefresh) {
         addLog('🔄 HomeScreen - Refrescando balances del backend...');
       } else {
@@ -202,36 +258,50 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
         return;
       }
       
-      // Si el userId es un UUID (no tiene prefijo usr-), esperar a que loadUserData lo convierta a KSUID
-      if (!userId.startsWith('usr-')) {
-        addLog(`⚠️ HomeScreen - UserId no es un KSUID válido (${userId}), esperando a que se cree el usuario...`);
+      // Validar userId (acepta UUID o KSUID con prefijo usr-)
+      const validatedUserId = validateUserId(userId);
+      if (!validatedUserId) {
+        addLog(`⚠️ HomeScreen - UserId no es válido (${userId}), esperando a que se cree el usuario...`);
         setBalances(getMockBalances());
         return;
       }
       
-      addLog(`👤 HomeScreen - UserId obtenido: ${userId}`);
+      addLog(`👤 HomeScreen - UserId obtenido: ${validatedUserId}`);
       
-      // Llamar al backend
+      // Llamar al backend con try-catch adicional para manejar errores de red
       addLog('📤 HomeScreen - Llamando balanceService.getBalances()');
-      const balancesData = await balanceService.getBalances(userId, signal);
-      
-      if (balancesData.balances && balancesData.balances.length > 0) {
-        addLog(`✅ HomeScreen - Balances obtenidos: ${balancesData.balances.length}`);
-        balancesData.balances.forEach((balance, index) => {
-          addLog(`  ${index + 1}. ${balance.currency}: ${balance.amount}`);
-        });
-        setBalances(balancesData.balances);
-      } else {
-        addLog('⚠️ HomeScreen - No hay balances, usando mock');
-      setBalances(getMockBalances());
+      try {
+        const balancesData = await balanceService.getBalances(validatedUserId, signal);
+        
+        if (balancesData.balances && balancesData.balances.length > 0) {
+          addLog(`✅ HomeScreen - Balances obtenidos: ${balancesData.balances.length}`);
+          balancesData.balances.forEach((balance, index) => {
+            addLog(`  ${index + 1}. ${balance.currency}: ${balance.amount}`);
+          });
+          setBalances(balancesData.balances);
+        } else {
+          addLog('⚠️ HomeScreen - No hay balances, usando mock');
+          setBalances(getMockBalances());
+        }
+      } catch (serviceError: any) {
+        // Si es AbortError, re-lanzar para que el catch externo lo maneje
+        if (serviceError.name === 'AbortError') {
+          throw serviceError;
+        }
+        // Para otros errores, usar mock y no propagar el error
+        addLog(`⚠️ HomeScreen - Error en balanceService: ${serviceError.message || String(serviceError)}`);
+        addLog('🔄 HomeScreen - Usando balances mock como fallback');
+        setBalances(getMockBalances());
       }
     } catch (error: any) {
       // Ignorar AbortError (operación cancelada intencionalmente)
       if (error.name === 'AbortError') {
         // No hacer nada, la operación fue cancelada intencionalmente
+        // No loggear como error
         return;
       }
       
+      // Solo loggear y manejar errores que no sean AbortError
       const errorMsg = `❌ HomeScreen - Error cargando balances: ${error.message || String(error)}`;
       addLog(errorMsg);
       console.error('❌ Error cargando balances:', error);
@@ -240,11 +310,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
       addLog('🔄 HomeScreen - Usando balances mock como fallback');
       setBalances(getMockBalances());
     } finally {
+      // Siempre resetear el flag de loading
       loadingRef.current.balances = false;
     }
-  };
+  }, [addLog]);
 
-  const loadUserData = async (signal?: AbortSignal, isRefresh = false): Promise<boolean> => {
+  const loadUserData = useCallback(async (signal?: AbortSignal, isRefresh = false): Promise<boolean> => {
     // Evitar llamadas duplicadas
     if (loadingRef.current.userData) {
       addLog('⚠️ HomeScreen - loadUserData ya está en progreso, ignorando llamada duplicada');
@@ -273,7 +344,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
         addLog(`⚠️ HomeScreen - Error inicializando base de datos: ${dbError}`);
       }
 
-      // Obtener userId (UUID) de AsyncStorage
+      // Obtener userId (UUID o KSUID) de AsyncStorage
       const userId = await AsyncStorage.getItem('currentUserId');
       
       if (!userId) {
@@ -282,18 +353,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
         return false;
       }
 
-      // Si el userId es un UUID (no tiene prefijo usr-), el usuario no existe en el backend todavía
-      // Intentaremos obtenerlo con getUserById, y si falla con 400, se creará automáticamente
-      if (!userId.startsWith('usr-')) {
-        addLog(`⚠️ HomeScreen - UserId no es un KSUID válido (${userId}), el usuario se creará automáticamente si no existe`);
+      // Validar userId (acepta UUID o KSUID con prefijo usr-)
+      const validatedUserId = validateUserId(userId);
+      if (!validatedUserId) {
+        addLog(`⚠️ HomeScreen - UserId no es válido (${userId}), el usuario se creará automáticamente si no existe`);
       }
       
-      addLog(`👤 HomeScreen - UserId obtenido: ${userId}`);
+      addLog(`👤 HomeScreen - UserId obtenido: ${validatedUserId || userId}`);
+      
+      // Usar validatedUserId si está disponible, sino usar userId original
+      const userIdToUse = validatedUserId || userId;
       
       try {
         // Intentar obtener datos del usuario desde el backend
         addLog('📤 HomeScreen - Llamando userService.getUserById()');
-        const userData = await userService.getUserById(userId, signal);
+        const userData = await userService.getUserById(userIdToUse, signal);
         
         if (userData) {
           addLog(`✅ HomeScreen - Usuario obtenido del backend: ${userData.fullName}`);
@@ -453,17 +527,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
     }
       loadingRef.current.userData = false;
     }
-  };
+  }, [addLog]);
 
-  const loadMovements = async (signal?: AbortSignal, isRefresh = false) => {
+  const loadMovements = useCallback(async (signal?: AbortSignal, isRefresh = false) => {
     // Evitar llamadas duplicadas
     if (loadingRef.current.movements) {
       addLog('⚠️ HomeScreen - loadMovements ya está en progreso, ignorando llamada duplicada');
       return;
     }
     
+    loadingRef.current.movements = true;
+    let shouldReset = true;
+    
     try {
-      loadingRef.current.movements = true;
       
       if (isRefresh) {
         addLog('🔄 HomeScreen - Refrescando movimientos del backend...');
@@ -480,29 +556,43 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
         return;
       }
 
-      // Si el userId es un UUID (no tiene prefijo usr-), esperar a que loadUserData lo convierta a KSUID
-      if (!userId.startsWith('usr-')) {
-        addLog(`⚠️ HomeScreen - UserId no es un KSUID válido (${userId}), esperando a que se cree el usuario...`);
+      // Validar userId (acepta UUID o KSUID con prefijo usr-)
+      const validatedUserId = validateUserId(userId);
+      if (!validatedUserId) {
+        addLog(`⚠️ HomeScreen - UserId no es válido (${userId}), esperando a que se cree el usuario...`);
         setMovements([]);
         return;
       }
 
-      addLog(`👤 HomeScreen - UserId obtenido para movimientos: ${userId}`);
+      addLog(`👤 HomeScreen - UserId obtenido para movimientos: ${validatedUserId}`);
       
-      // Llamar al backend - obtener últimos 50 movimientos
-      const movementsData = await movementsService.getMovementsByUser(userId, 50, 0, signal);
-      
-      if (movementsData && movementsData.length > 0) {
-        addLog(`✅ HomeScreen - Movimientos obtenidos: ${movementsData.length}`);
-        setMovements(movementsData);
-      } else {
-        addLog('✅ HomeScreen - No hay movimientos del backend (array vacío)');
-        setMovements([]); // Mostrar estado vacío, no mock
+      // Llamar al backend - obtener últimos 50 movimientos con try-catch adicional
+      try {
+        const movementsData = await movementsService.getMovementsByUser(validatedUserId, 50, 0, signal);
+        
+        if (movementsData && movementsData.length > 0) {
+          addLog(`✅ HomeScreen - Movimientos obtenidos: ${movementsData.length}`);
+          setMovements(movementsData);
+        } else {
+          addLog('✅ HomeScreen - No hay movimientos del backend (array vacío)');
+          setMovements([]); // Mostrar estado vacío, no mock
+        }
+      } catch (serviceError: any) {
+        // Si es AbortError, re-lanzar para que el catch externo lo maneje
+        if (serviceError.name === 'AbortError') {
+          throw serviceError;
+        }
+        // Para otros errores, mostrar estado vacío y no propagar el error
+        addLog(`⚠️ HomeScreen - Error en movementsService: ${serviceError.message || String(serviceError)}`);
+        addLog('⚠️ HomeScreen - Mostrando estado vacío de movimientos');
+        setMovements([]);
       }
     } catch (error: any) {
       // Ignorar AbortError (operación cancelada intencionalmente)
       if (error.name === 'AbortError') {
         // No hacer nada, la operación fue cancelada intencionalmente
+        // Asegurar que el finally se ejecute
+        loadingRef.current.movements = false;
         return;
       }
       
@@ -514,9 +604,60 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
       addLog('⚠️ HomeScreen - Error al obtener movimientos, mostrando estado vacío');
       setMovements([]);
     } finally {
+      // Siempre resetear el flag de loading
       loadingRef.current.movements = false;
     }
-  };
+  }, [addLog]);
+
+  // useEffect para cargar datos iniciales - debe ir después de las declaraciones de funciones
+  useEffect(() => {
+    // Crear AbortController para cancelar operaciones cuando el componente se desmonte
+    const abortController = new AbortController();
+    const signal = abortController.signal;
+    
+    // Cargar datos iniciales de forma secuencial para evitar llamadas duplicadas
+    const loadInitialData = async () => {
+      try {
+        addLog('🚀 HomeScreen - Iniciando carga de datos iniciales...');
+        // Primero cargar datos del usuario (necesario para obtener el KSUID)
+        // Si retorna true, significa que se creó un usuario nuevo y AsyncStorage ya tiene el KSUID
+        const userCreated = await loadUserData(signal);
+        
+        // Luego cargar balances y movimientos en paralelo (ya tenemos el KSUID)
+        // Solo cargar si no se creó un usuario nuevo (porque loadUserData ya actualizó AsyncStorage)
+        // o si se creó uno nuevo, esperar un momento para asegurar que AsyncStorage se actualizó
+        if (userCreated) {
+          // Si se creó un usuario nuevo, esperar un momento para asegurar que AsyncStorage se actualizó
+          // Usar Promise para evitar problemas con setTimeout y hooks
+          await new Promise(resolve => setTimeout(resolve, 100));
+          await Promise.all([
+            loadBalances(signal),
+            loadMovements(signal),
+          ]);
+        } else {
+          // Si el usuario ya existía, cargar inmediatamente
+          await Promise.all([
+            loadBalances(signal),
+            loadMovements(signal),
+          ]);
+        }
+        addLog('✅ HomeScreen - Carga de datos iniciales completada');
+      } catch (error: any) {
+        // Ignorar AbortError (operación cancelada intencionalmente)
+        if (error.name !== 'AbortError') {
+          addLog(`❌ HomeScreen - Error cargando datos iniciales: ${error.message}`);
+          console.error('Error cargando datos iniciales:', error);
+        }
+      }
+    };
+    loadInitialData();
+    
+    // Cleanup: cancelar todas las operaciones async cuando el componente se desmonte
+    return () => {
+      abortController.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo ejecutar una vez al montar el componente
 
   // Mock movements - Usado cuando el backend no tiene la API de movimientos
   const getMockMovements = (): Movement[] => {
@@ -764,17 +905,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onLogout }) => {
                     contact={selectedContact}
                     balances={balances.length > 0 ? balances : getMockBalances()}
                     destinationCurrency={transferDestinationCurrency}
+                    isTransferring={isTransferring}
+                    transferError={transferError}
                     onClose={() => {
                       // Resetear estado al cerrar
                       setShowTransferScreen(false);
                       setSelectedContact(null);
+                      setTransferError(null);
+                      setIsTransferring(false);
                     }}
                     onContinue={(amount, sourceCurrency, destinationCurrency) => {
-                      addLog(`✅ HomeScreen - Transferencia iniciada: ${amount} ${destinationCurrency} (desde ${sourceCurrency}) a ${selectedContact?.fullName}`);
-                      // TODO: Implementar lógica de transferencia
-                      // Por ahora cerramos la pantalla y reseteamos
-                      setShowTransferScreen(false);
-                      setSelectedContact(null);
+                      if (selectedContact) {
+                        // Resetear error antes de iniciar nueva transferencia
+                        setTransferError(null);
+                        handleTransfer(amount, sourceCurrency, destinationCurrency, selectedContact);
+                      }
                     }}
                   />
 

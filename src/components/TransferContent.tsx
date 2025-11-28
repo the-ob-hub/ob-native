@@ -135,6 +135,7 @@ export const TransferContent: React.FC<TransferContentProps> = ({
   };
 
   const handleAddContact = async (contactData: {
+    contactId?: string;
     cvu?: string;
     alias?: string;
     fullName?: string;
@@ -145,17 +146,26 @@ export const TransferContent: React.FC<TransferContentProps> = ({
       
       // Crear el nuevo contacto
       const newContact: UserContact = {
+        contactId: contactData.contactId,
         cvu: contactData.cvu,
         alias: contactData.alias,
         fullName: contactData.fullName || 'Nuevo contacto',
         phone: contactData.phone,
+        hasDolarApp: !!contactData.contactId,
         isSaved: true,
       };
 
-      // Agregar a la lista de contactos
-      const updatedContacts = [newContact, ...allContacts];
-      setAllContacts(updatedContacts);
-      setFilteredContacts(updatedContacts);
+      // Recargar contactos desde el servicio para obtener la lista actualizada
+      const response = await contactsService.getAllContacts({ currency });
+      if (response.success) {
+        setAllContacts(response.contacts);
+        setFilteredContacts(response.contacts);
+      } else {
+        // Fallback: agregar localmente si falla la recarga
+        const updatedContacts = [newContact, ...allContacts];
+        setAllContacts(updatedContacts);
+        setFilteredContacts(updatedContacts);
+      }
       
       // También agregar a contactos recientes si hay espacio
       if (recentContacts.length < 10) {
@@ -187,7 +197,10 @@ export const TransferContent: React.FC<TransferContentProps> = ({
         />
 
         {/* Barra de búsqueda */}
-        <ContactSearchBar onSearchChange={handleSearch} />
+        <ContactSearchBar 
+          onSearchChange={handleSearch} 
+          onAddPress={() => setIsAddContactSheetVisible(true)}
+        />
       </View>
 
       {/* ScrollView solo para la lista de contactos - puede pasar por debajo del buscador */}

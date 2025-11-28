@@ -6,6 +6,7 @@ import { apiClient } from './base';
 import { BackendUser, BackendUserResponse, CreateUserInput, CreateUserResponse } from './types';
 import { User } from '../../models';
 import { logger } from '../../utils/logger';
+import { validateUserId } from '../../utils/helpers';
 
 export interface UserDetail {
   id: string;
@@ -75,6 +76,46 @@ function transformBackendUser(backendUser: BackendUser): User {
 
 export const userService = {
   /**
+   * Busca un usuario por teléfono en el backend
+   * Usa el endpoint /api/v1/users/pending-review y filtra por teléfono
+   * 
+   * @param phone Teléfono del usuario a buscar
+   * @returns Usuario encontrado o null si no existe
+   */
+  async getUserByPhone(phone: string, signal?: AbortSignal): Promise<User | null> {
+    try {
+      logger.log(`🔍 UserService - Buscando usuario por teléfono: ${phone}`);
+      
+      // Obtener usuarios pendientes y buscar por teléfono
+      const backendResponse = await apiClient.get<{ success: boolean; data: BackendUser[]; count: number }>(
+        '/api/v1/users/pending-review',
+        undefined,
+        signal
+      );
+      
+      if (backendResponse.success && backendResponse.data) {
+        // Normalizar teléfono para comparación (remover espacios, guiones, etc)
+        const normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
+        const user = backendResponse.data.find((u) => {
+          const userPhone = u.phone?.replace(/[\s\-\(\)]/g, '') || '';
+          return userPhone === normalizedPhone || userPhone.endsWith(normalizedPhone) || normalizedPhone.endsWith(userPhone);
+        });
+        if (user) {
+          logger.log(`✅ UserService - Usuario encontrado por teléfono: ${user.full_name}`);
+          logger.log(`🔗 UserService - KSUID: ${user.id}`);
+          return transformBackendUser(user);
+        }
+      }
+      
+      logger.log(`⚠️ UserService - Usuario no encontrado por teléfono: ${phone}`);
+      return null;
+    } catch (error: any) {
+      logger.error(`❌ UserService - Error al buscar usuario por teléfono: ${error.message}`);
+      return null;
+    }
+  },
+
+  /**
    * Busca un usuario por email en el backend
    * Usa el endpoint /api/v1/users/pending-review y filtra por email
    * 
@@ -114,15 +155,27 @@ export const userService = {
    * GET /api/v1/users/:userId
    * 
    * Transforma la respuesta del backend al formato esperado por la app
-   * El userId ahora es un KSUID con prefijo (ej: usr-35zOFEAAauXtfzUkDIxWx34tpLh)
+   * El userId puede ser UUID o KSUID (con o sin prefijo usr-)
    */
   async getUserById(userId: string, signal?: AbortSignal): Promise<User> {
     try {
-      logger.log(`👥 UserService - Obteniendo usuario del backend: ${userId}`);
+      // Validar userId
+      const validatedUserId = validateUserId(userId);
+      if (!validatedUserId) {
+        throw new Error(`Invalid user ID format: ${userId}`);
+      }
+      
+      logger.log(`👥 UserService - Obteniendo usuario del backend: ${validatedUserId}`);
+      
+      // El backend acepta UUID o KSUID sin prefijo, pero también podemos enviar con prefijo
+      // Si tiene prefijo usr-, lo removemos para el backend (el backend espera UUID estándar por ahora)
+      const userIdForBackend = validatedUserId.startsWith('usr-') 
+        ? validatedUserId.substring(4) 
+        : validatedUserId;
       
       // Llamar al backend
       const backendResponse = await apiClient.get<BackendUserResponse>(
-        `/api/v1/users/${userId}`,
+        `/api/v1/users/${userIdForBackend}`,
         undefined,
         signal
       );

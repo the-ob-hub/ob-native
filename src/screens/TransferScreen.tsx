@@ -36,6 +36,8 @@ interface TransferScreenProps {
   destinationCurrency: Currency; // Moneda destino (siempre la del balance origen)
   onClose: () => void;
   onContinue: (amount: number, sourceCurrency: Currency, destinationCurrency: Currency) => void;
+  isTransferring?: boolean; // Indica si la transferencia está en progreso
+  transferError?: string | null; // Mensaje de error si la transferencia falla
 }
 
 const BackIcon = () => (
@@ -190,6 +192,8 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
   destinationCurrency,
   onClose,
   onContinue,
+  isTransferring = false,
+  transferError = null,
 }) => {
   const [amount, setAmount] = useState('');
   const [sourceCurrency, setSourceCurrency] = useState<Currency>(destinationCurrency); // Moneda de partida (saldo)
@@ -370,6 +374,11 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
   };
 
   const handleContinue = () => {
+    // No permitir continuar si ya está procesando
+    if (isTransferring) {
+      return;
+    }
+    
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       addLog('❌ TransferScreen - Monto inválido');
@@ -383,6 +392,14 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
     addLog(`✅ TransferScreen - Continuar con transferencia: ${numAmount} ${destinationCurrency} (desde ${sourceCurrency}) a ${contact?.fullName || 'N/A'}`);
     onContinue(numAmount, sourceCurrency, destinationCurrency);
   };
+
+  // Resetear error cuando cambia el monto
+  useEffect(() => {
+    if (transferError && amount) {
+      // El error se resetea cuando el usuario modifica el monto
+      // Esto se maneja desde el componente padre
+    }
+  }, [amount, transferError]);
 
   const getCurrencyLabel = (currency: Currency) => {
     switch (currency) {
@@ -591,10 +608,24 @@ export const TransferScreen: React.FC<TransferScreenProps> = ({
           </View>
         )}
 
+        {/* Mensaje de error */}
+        {transferError && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{transferError}</Text>
+          </View>
+        )}
+
+        {/* Indicador de carga */}
+        {isTransferring && (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Procesando transferencia...</Text>
+          </View>
+        )}
+
         {/* Botón Slide para Enviar */}
         <SlideToSendButton
           onSend={handleContinue}
-          disabled={!amount || parseFloat(amount) <= 0}
+          disabled={!amount || parseFloat(amount) <= 0 || isTransferring}
         />
       </View>
 
@@ -985,6 +1016,35 @@ const styles = StyleSheet.create({
     fontSize: 20, // Reducido proporcionalmente (de 21 a 20)
     fontFamily: FONTS.inter.bold,
     color: COLORS.white,
+  },
+  errorContainer: {
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xs,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    backgroundColor: 'rgba(107, 28, 42, 0.3)',
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: '#6B1C2A',
+  },
+  errorText: {
+    fontSize: 14,
+    fontFamily: FONTS.inter.regular,
+    color: '#FF6B6B',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xs,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: FONTS.inter.regular,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
   },
 });
 

@@ -10,9 +10,13 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { COLORS, SPACING, FONTS } from '../constants';
 import { useLogs } from '../contexts/LogContext';
+import { userService } from '../services/api/userService';
+import { contactsService } from '../services/api/contactsService';
+import { User } from '../models';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SHEET_HEIGHT = SCREEN_HEIGHT * 0.8;
@@ -37,10 +41,13 @@ export const AddContactSheet: React.FC<AddContactSheetProps> = ({
   const backdropAnim = useRef(new Animated.Value(0)).current;
   const { addLog } = useLogs();
 
+  const [phone, setPhone] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [foundUser, setFoundUser] = useState<User | null>(null);
   const [cvu, setCvu] = useState('');
   const [alias, setAlias] = useState('');
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
 
   useEffect(() => {
     if (visible) {
@@ -72,10 +79,13 @@ export const AddContactSheet: React.FC<AddContactSheetProps> = ({
         }),
       ]).start();
       // Limpiar campos al cerrar
+      setPhone('');
+      setNickname('');
+      setIsSearching(false);
+      setFoundUser(null);
       setCvu('');
       setAlias('');
       setFullName('');
-      setPhone('');
     }
   }, [visible]);
 
@@ -97,22 +107,97 @@ export const AddContactSheet: React.FC<AddContactSheetProps> = ({
     });
   };
 
-  const handleAdd = () => {
-    if (!cvu && !alias) {
-      Alert.alert('Error', 'Debes ingresar al menos un CVU o un Alias');
+  // Buscar usuario por teléfono cuando se ingresa
+  useEffect(() => {
+    const searchUser = async () => {
+      if (!phone || phone.length < 8) {
+        setFoundUser(null);
+        setIsSearching(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        addLog(`🔍 AddContactSheet - Buscando usuario por teléfono: ${phone}`);
+        const user = await userService.getUserByPhone(phone);
+        
+        if (user) {
+          addLog(`✅ AddContactSheet - Usuario encontrado: ${user.fullName}`);
+          setFoundUser(user);
+          setFullName(user.fullName || '');
+          setCvu(user.id || ''); // Usar ID como CVU temporalmente
+          // No establecer alias automáticamente, dejar que el usuario lo ingrese como nickname
+        } else {
+          addLog(`⚠️ AddContactSheet - Usuario no encontrado por teléfono`);
+          setFoundUser(null);
+        }
+      } catch (error: any) {
+        addLog(`❌ AddContactSheet - Error buscando usuario: ${error.message}`);
+        setFoundUser(null);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    // Debounce de 800ms para evitar búsquedas excesivas
+    const timeoutId = setTimeout(searchUser, 800);
+    return () => clearTimeout(timeoutId);
+  }, [phone]);
+
+  const handleAdd = async () => {
+    if (!phone || phone.length < 8) {
+      Alert.alert('Error', 'Debes ingresar un teléfono válido');
       return;
     }
 
-    addLog(`➕ AddContactSheet - Agregando contacto: ${fullName || 'Sin nombre'} (CVU: ${cvu || 'N/A'}, Alias: ${alias || 'N/A'})`);
-    
-    onAddContact({
-      cvu: cvu || undefined,
-      alias: alias || undefined,
-      fullName: fullName || undefined,
-      phone: phone || undefined,
-    });
+    if (!foundUser && !nickname) {
+      Alert.alert('Error', 'Si el usuario no existe, debes ingresar un nombre');
+      return;
+    }
 
-    handleClose();
+    try {
+      addLog(`➕ AddContactSheet - Agregando contacto: ${nickname || fullName || 'Sin nombre'} (Tel: ${phone})`);
+      
+      // Si encontramos un usuario, guardarlo como contacto con nickname
+      if (foundUser) {
+        const contactData = {
+          contactId: foundUser.id,
+          alias: nickname || undefined,
+          cvu: foundUser.id, // Usar ID como CVU
+        };
+
+        // Guardar en el servicio de contactos
+        const result = await contactsService.addContact(contactData);
+        
+        if (result.success) {
+          addLog(`✅ AddContactSheet - Contacto guardado exitosamente`);
+          
+          // Llamar al callback con los datos completos
+          onAddContact({
+            contactId: foundUser.id,
+            cvu: foundUser.id,
+            alias: nickname || undefined,
+            fullName: nickname || foundUser.fullName || '',
+            phone: phone,
+          });
+          
+          handleClose();
+        } else {
+          Alert.alert('Error', 'No se pudo guardar el contacto');
+        }
+      } else {
+        // Usuario no encontrado, agregar como contacto externo con nombre manual
+        onAddContact({
+          fullName: nickname || 'Contacto sin nombre',
+          phone: phone,
+        });
+        
+        handleClose();
+      }
+    } catch (error: any) {
+      addLog(`❌ AddContactSheet - Error agregando contacto: ${error.message}`);
+      Alert.alert('Error', 'No se pudo agregar el contacto');
+    }
   };
 
   return (
@@ -162,68 +247,80 @@ export const AddContactSheet: React.FC<AddContactSheetProps> = ({
             showsVerticalScrollIndicator={false}
           >
             <Text style={styles.title}>Agregar contacto</Text>
-            <Text style={styles.subtitle}>Ingresa los datos para crear un nuevo contacto</Text>
+            <Text style={styles.subtitle}>Ingresa el teléfono para buscar y agregar un contacto</Text>
 
-            {/* Campo CVU */}
+            {/* Campo Teléfono - Principal */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>CVU</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej: 0288818238126387137691"
-                placeholderTextColor={COLORS.textSecondary}
-                value={cvu}
-                onChangeText={setCvu}
-                keyboardType="numeric"
-                autoCapitalize="none"
-              />
+              <Text style={styles.label}>Teléfono *</Text>
+              <View style={styles.phoneInputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ej: +59812345678"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  autoFocus
+                />
+                {isSearching && (
+                  <ActivityIndicator size="small" color={COLORS.primary} style={styles.searchIndicator} />
+                )}
+              </View>
+              {foundUser && (
+                <View style={styles.userFoundContainer}>
+                  <Text style={styles.userFoundText}>✓ Usuario encontrado: {foundUser.fullName}</Text>
+                  {foundUser.email && (
+                    <Text style={styles.userFoundEmail}>{foundUser.email}</Text>
+                  )}
+                </View>
+              )}
             </View>
 
-            {/* Campo Alias */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Alias</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej: juan.perez"
-                placeholderTextColor={COLORS.textSecondary}
-                value={alias}
-                onChangeText={setAlias}
-                autoCapitalize="none"
-              />
-            </View>
+            {/* Campo Nickname - Solo si se encontró usuario */}
+            {foundUser && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Nickname (opcional)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ej: Juan"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={nickname}
+                  onChangeText={setNickname}
+                  autoCapitalize="words"
+                />
+                <Text style={styles.helperText}>Este nombre aparecerá en tus contactos</Text>
+              </View>
+            )}
 
-            {/* Campo Nombre completo */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Nombre completo</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej: Juan Pérez"
-                placeholderTextColor={COLORS.textSecondary}
-                value={fullName}
-                onChangeText={setFullName}
-                autoCapitalize="words"
-              />
-            </View>
-
-            {/* Campo Teléfono */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Teléfono (opcional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej: +59812345678"
-                placeholderTextColor={COLORS.textSecondary}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-              />
-            </View>
+            {/* Campo Nombre - Solo si NO se encontró usuario */}
+            {!foundUser && phone.length >= 8 && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Nombre completo *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ej: Juan Pérez"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={nickname}
+                  onChangeText={setNickname}
+                  autoCapitalize="words"
+                />
+                <Text style={styles.helperText}>El usuario no está registrado en la app</Text>
+              </View>
+            )}
 
             {/* Botón Agregar */}
             <TouchableOpacity
-              style={styles.addButton}
+              style={[
+                styles.addButton,
+                (!phone || phone.length < 8 || (!foundUser && !nickname)) && styles.addButtonDisabled
+              ]}
               onPress={handleAdd}
               activeOpacity={0.8}
+              disabled={!phone || phone.length < 8 || (!foundUser && !nickname)}
             >
-              <Text style={styles.addButtonText}>Agregar contacto</Text>
+              <Text style={styles.addButtonText}>
+                {foundUser ? 'Agregar contacto' : 'Agregar como externo'}
+              </Text>
             </TouchableOpacity>
 
             {/* Botón Cancelar */}
@@ -298,7 +395,12 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     marginBottom: SPACING.sm,
   },
+  phoneInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   input: {
+    flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     paddingHorizontal: SPACING.md,
@@ -309,6 +411,34 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
+  searchIndicator: {
+    marginLeft: SPACING.sm,
+  },
+  userFoundContainer: {
+    marginTop: SPACING.sm,
+    padding: SPACING.sm,
+    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 0, 0.3)',
+  },
+  userFoundText: {
+    fontSize: 14,
+    fontFamily: FONTS.inter.bold,
+    color: '#00FF00',
+  },
+  userFoundEmail: {
+    fontSize: 12,
+    fontFamily: FONTS.inter.regular,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+  },
+  helperText: {
+    fontSize: 12,
+    fontFamily: FONTS.inter.regular,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+  },
   addButton: {
     backgroundColor: COLORS.primary,
     borderRadius: 12,
@@ -316,6 +446,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: SPACING.lg,
     marginBottom: SPACING.md,
+  },
+  addButtonDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    opacity: 0.5,
   },
   addButtonText: {
     fontSize: 16,

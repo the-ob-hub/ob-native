@@ -6,6 +6,7 @@ import { apiClient } from './base';
 import { BackendBalance, BackendBalancesResponse } from './types';
 import { Balance, BalancesResponse, Currency, ActionId } from '../../models';
 import { logger } from '../../utils/logger';
+import { validateUserId } from '../../utils/helpers';
 
 /**
  * Mapea assetCode del backend a Currency de la app
@@ -83,26 +84,38 @@ export const balanceService = {
   /**
    * Realiza un depósito en el balance de un usuario
    * POST /api/v1/users/:userId/deposit
+   * El userId puede ser UUID o KSUID (con o sin prefijo usr-)
    */
   async deposit(userId: string, input: DepositInput): Promise<void> {
     try {
-      logger.log(`💰 BalanceService - Realizando depósito para userId: ${userId}`);
+      // Validar userId
+      const validatedUserId = validateUserId(userId);
+      if (!validatedUserId) {
+        throw new Error(`Invalid user ID format: ${userId}`);
+      }
+      
+      logger.log(`💰 BalanceService - Realizando depósito para userId: ${validatedUserId}`);
       logger.log(`📊 BalanceService - AssetCode: ${input.assetCode}, Amount: ${input.amount}`);
       
-      // El backend espera amount como string (decimal.Decimal) y snake_case
+      // El backend espera snake_case según la documentación
       const depositPayload = {
         asset_code: input.assetCode,
         asset_type: input.assetType,
-        amount: input.amount.toString(), // Convertir a string para el backend
+        amount: input.amount.toString(), // Convertir a string para el backend (decimal.Decimal)
         external_reference: input.externalReference,
         description: input.description,
       };
       
       logger.log(`📤 BalanceService - Payload: ${JSON.stringify(depositPayload)}`);
       
+      // Si tiene prefijo usr-, lo removemos para el backend
+      const userIdForBackend = validatedUserId.startsWith('usr-') 
+        ? validatedUserId.substring(4) 
+        : validatedUserId;
+      
       // Llamar al backend
       const response = await apiClient.post<{ success: boolean; data: any; error?: string }>(
-        `/api/v1/users/${userId}/deposit`,
+        `/api/v1/users/${userIdForBackend}/deposit`,
         depositPayload
       );
       
@@ -124,14 +137,27 @@ export const balanceService = {
    * GET /api/v1/users/:userId/balances
    * 
    * Transforma la respuesta del backend al formato esperado por la app
+   * El userId puede ser UUID o KSUID (con o sin prefijo usr-)
    */
   async getBalances(userId: string, signal?: AbortSignal): Promise<BalancesResponse> {
     try {
-      logger.log(`💰 BalanceService - Obteniendo balances para userId: ${userId}`);
+      // Validar userId
+      const validatedUserId = validateUserId(userId);
+      if (!validatedUserId) {
+        throw new Error(`Invalid user ID format: ${userId}`);
+      }
+      
+      logger.log(`💰 BalanceService - Obteniendo balances para userId: ${validatedUserId}`);
+      
+      // El backend acepta UUID o KSUID sin prefijo, pero también podemos enviar con prefijo
+      // Si tiene prefijo usr-, lo removemos para el backend (el backend espera UUID estándar por ahora)
+      const userIdForBackend = validatedUserId.startsWith('usr-') 
+        ? validatedUserId.substring(4) 
+        : validatedUserId;
       
       // Llamar al backend
       const backendResponse = await apiClient.get<BackendBalancesResponse>(
-        `/api/v1/users/${userId}/balances`,
+        `/api/v1/users/${userIdForBackend}/balances`,
         undefined,
         signal
       );

@@ -6,6 +6,7 @@ import { useLogs } from '../contexts/LogContext';
 
 interface ContactSearchBarProps {
   onSearchChange: (query: string) => void;
+  onAddPress?: () => void;
   placeholder?: string;
 }
 
@@ -40,8 +41,21 @@ const ClearIcon = () => (
   </Svg>
 );
 
+const PlusIcon = () => (
+  <Svg width={20} height={20} viewBox="0 0 20 20" fill="none">
+    <Path
+      d="M10 4V16M4 10H16"
+      stroke={COLORS.white}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export const ContactSearchBar: React.FC<ContactSearchBarProps> = ({
   onSearchChange,
+  onAddPress,
   placeholder = 'Alias, nombre, celular, CVU',
 }) => {
   const [query, setQuery] = useState('');
@@ -78,6 +92,15 @@ export const ContactSearchBar: React.FC<ContactSearchBarProps> = ({
           </TouchableOpacity>
         )}
       </View>
+      {onAddPress && (
+        <TouchableOpacity 
+          style={styles.addButton} 
+          onPress={onAddPress}
+          activeOpacity={0.7}
+        >
+          <PlusIcon />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -87,6 +110,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     width: '100%',
     alignItems: 'center', // Centrar el buscador
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: SPACING.sm,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -97,7 +123,17 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
     paddingHorizontal: SPACING.md,
     paddingVertical: Math.round(SPACING.sm * 1.46), // 46% más alto (10% + 10% + 10% + 10% adicional)
-    width: '88%', // 88% de ancho (aumentado 10% desde 80%)
+    width: '79.2%', // 79.2% de ancho (reducido 10% desde 88%)
+  },
+  addButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22, // Hacer circular (mitad del ancho/alto)
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
   iconContainer: {
     marginRight: SPACING.sm,
