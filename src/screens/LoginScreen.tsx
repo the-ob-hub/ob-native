@@ -60,26 +60,31 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
         const elapsedTime = Date.now() - startTime;
         addLog(`✅ LoginScreen - Login exitoso (${elapsedTime}ms)`);
         addLog(`🎫 LoginScreen - Tokens recibidos: ${result.tokens ? 'Sí' : 'No'}`);
-        
+
         if (result.tokens) {
           addLog(`🔑 LoginScreen - ID Token (JWT) length: ${result.tokens.idToken.length} caracteres`);
           addLog(`🔑 LoginScreen - Access Token length: ${result.tokens.accessToken.length} caracteres`);
           addLog(`🔑 LoginScreen - Refresh Token length: ${result.tokens.refreshToken.length} caracteres`);
-          
+
           // Log del inicio del JWT (primeros 50 caracteres) para verificar formato
           const jwtPreview = result.tokens.idToken.substring(0, 50);
           addLog(`🔍 LoginScreen - JWT preview: ${jwtPreview}...`);
-          
+
           // Verificar que el JWT se guardó correctamente
           addLog(`💾 LoginScreen - Verificando persistencia del JWT...`);
         }
-        
+
         addLog(`📱 LoginScreen - Llamando onLoginSuccess()`);
+        addLog(`🏁 LoginScreen - ========== FIN LOGIN ==========`);
+        // NO llamar setIsLoading(false) aquí - mantener el spinner hasta después del redirect
         onLoginSuccess();
+        // El spinner se mantendrá visible hasta que el componente se desmonte
       } else {
         const elapsedTime = Date.now() - startTime;
         addLog(`❌ LoginScreen - Login fallido después de ${elapsedTime}ms`);
         addLog(`❌ LoginScreen - Error: ${result.message || 'Error desconocido'}`);
+        addLog(`🏁 LoginScreen - ========== FIN LOGIN ==========`);
+        setIsLoading(false); // Solo detener spinner en caso de error
         Alert.alert('Error', result.message || 'Error al iniciar sesión');
       }
     } catch (error: any) {
@@ -87,11 +92,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
       const errorMsg = `❌ LoginScreen - Error después de ${elapsedTime}ms: ${error.message || String(error)}`;
       addLog(errorMsg);
       addLog(`❌ LoginScreen - Error stack: ${error.stack || 'N/A'}`);
-      console.error('❌ Error en login:', error);
-      Alert.alert('Error', error.message || 'Error al iniciar sesión');
-    } finally {
-      setIsLoading(false);
       addLog(`🏁 LoginScreen - ========== FIN LOGIN ==========`);
+      console.error('❌ Error en login:', error);
+      setIsLoading(false); // Solo detener spinner en caso de error
+      Alert.alert('Error', error.message || 'Error al iniciar sesión');
     }
   };
 
@@ -170,11 +174,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
             disabled={isLoading}
             activeOpacity={0.8}
           >
-            {isLoading ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
+            <View style={styles.loginButtonContent}>
+              {isLoading && (
+                <ActivityIndicator color={COLORS.primary} style={styles.spinner} />
+              )}
               <Text style={styles.loginButtonText}>Iniciar sesión</Text>
-            )}
+            </View>
           </TouchableOpacity>
 
           {/* Links adicionales */}
@@ -207,7 +212,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onShow
         onPress={() => setIsLogViewerVisible(true)}
         activeOpacity={0.7}
       >
-          <Text style={styles.versionBadgeText}>v2.2.6</Text>
+          <Text style={styles.versionBadgeText}>v2.2.7</Text>
       </TouchableOpacity>
 
       {/* LogViewer */}
@@ -306,6 +311,15 @@ const styles = StyleSheet.create({
   },
   loginButtonDisabled: {
     opacity: 0.6,
+  },
+  loginButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+  },
+  spinner: {
+    marginRight: SPACING.xs,
   },
   loginButtonText: {
     fontSize: 16,

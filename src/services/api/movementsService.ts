@@ -25,20 +25,15 @@ export const movementsService = {
       }
       
       logger.log(`📊 MovementsService - Obteniendo movimientos para userId: ${validatedUserId}`);
-      
-      // Si tiene prefijo usr-, lo removemos para el backend
-      const userIdForBackend = validatedUserId.startsWith('usr-') 
-        ? validatedUserId.substring(4) 
-        : validatedUserId;
-      
+
       // Construir query params
       const params = new URLSearchParams();
       if (limit) params.append('limit', limit.toString());
       if (offset) params.append('offset', offset.toString());
       const queryString = params.toString();
-      const endpoint = `/api/v1/users/${userIdForBackend}/movements${queryString ? `?${queryString}` : ''}`;
-      
-      // Llamar al backend
+      const endpoint = `/api/v1/users/${validatedUserId}/movements${queryString ? `?${queryString}` : ''}`;
+
+      // Llamar al backend con el userId completo (con prefijo usr- si lo tiene)
       const backendResponse = await apiClient.get<BackendMovementsResponse>(endpoint, undefined, signal);
       
       logger.log(`✅ MovementsService - Respuesta del backend recibida`);

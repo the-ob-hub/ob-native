@@ -107,15 +107,10 @@ export const balanceService = {
       };
       
       logger.log(`📤 BalanceService - Payload: ${JSON.stringify(depositPayload)}`);
-      
-      // Si tiene prefijo usr-, lo removemos para el backend
-      const userIdForBackend = validatedUserId.startsWith('usr-') 
-        ? validatedUserId.substring(4) 
-        : validatedUserId;
-      
-      // Llamar al backend
+
+      // Llamar al backend con el userId completo (con prefijo usr- si lo tiene)
       const response = await apiClient.post<{ success: boolean; data: any; error?: string }>(
-        `/api/v1/users/${userIdForBackend}/deposit`,
+        `/api/v1/users/${validatedUserId}/deposit`,
         depositPayload
       );
       
@@ -148,16 +143,10 @@ export const balanceService = {
       }
       
       logger.log(`💰 BalanceService - Obteniendo balances para userId: ${validatedUserId}`);
-      
-      // El backend acepta UUID o KSUID sin prefijo, pero también podemos enviar con prefijo
-      // Si tiene prefijo usr-, lo removemos para el backend (el backend espera UUID estándar por ahora)
-      const userIdForBackend = validatedUserId.startsWith('usr-') 
-        ? validatedUserId.substring(4) 
-        : validatedUserId;
-      
-      // Llamar al backend
+
+      // Llamar al backend con el userId completo (con prefijo usr- si lo tiene)
       const backendResponse = await apiClient.get<BackendBalancesResponse>(
-        `/api/v1/users/${userIdForBackend}/balances`,
+        `/api/v1/users/${validatedUserId}/balances`,
         undefined,
         signal
       );

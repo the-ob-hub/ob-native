@@ -54,16 +54,13 @@ export const transferService = {
       };
       
       // Agregar destino según lo que esté disponible
-      // El backend espera counterpart_user_id (KSUID) o counterpart_account (CVU) en snake_case
+      // El backend espera counterpart_user_id (KSUID con prefijo) o counterpart_account (CVU) en snake_case
       if (input.destinationUserId) {
         // Validar y normalizar el destinationUserId
         const validatedDestUserId = validateUserId(input.destinationUserId);
         if (validatedDestUserId) {
-          // Si tiene prefijo usr-, removerlo para el backend (el backend espera KSUID sin prefijo en el payload)
-          const destUserIdForBackend = validatedDestUserId.startsWith('usr-') 
-            ? validatedDestUserId.substring(4) 
-            : validatedDestUserId;
-          transferPayload.counterpart_user_id = destUserIdForBackend;
+          // Enviar el userId completo (con prefijo usr- si lo tiene)
+          transferPayload.counterpart_user_id = validatedDestUserId;
         } else {
           throw new Error(`Invalid destination user ID format: ${input.destinationUserId}`);
         }
@@ -74,15 +71,10 @@ export const transferService = {
       }
       
       logger.log(`📤 TransferService - Payload: ${JSON.stringify(transferPayload)}`);
-      
-      // Si tiene prefijo usr-, lo removemos para el backend
-      const userIdForBackend = validatedUserId.startsWith('usr-') 
-        ? validatedUserId.substring(4) 
-        : validatedUserId;
-      
-      // Llamar al backend
+
+      // Llamar al backend con el userId completo (con prefijo usr- si lo tiene)
       const response = await apiClient.post<TransferResponse>(
-        `/api/v1/users/${userIdForBackend}/transfer`,
+        `/api/v1/users/${validatedUserId}/transfer`,
         transferPayload
       );
       

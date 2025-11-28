@@ -15,6 +15,13 @@ const config = {
     ],
     // Asegurar que Metro pueda resolver módulos aunque no estén en el Haste map
     disableHierarchicalLookup: false,
+    // Bloquear carpetas de build para evitar errores de permisos
+    blockList: [
+      /ios\/build\/.*/,
+      /ios\/DerivedData\/.*/,
+      /android\/build\/.*/,
+      /android\/app\/build\/.*/,
+    ],
   },
   watchFolders: [
     path.resolve(__dirname, 'node_modules'),

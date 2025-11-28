@@ -15,7 +15,7 @@ import { BalanceActions } from './BalanceActions';
 import { BalanceBackground } from './BalanceBackground';
 import { TransferContent } from './TransferContent';
 import { useLogs } from '../contexts/LogContext';
-import { Balance, ActionId } from '../models';
+import { Balance, ActionId, Currency } from '../models';
 import { UserContact } from '../models/contacts';
 import { trackingService } from '../services/analytics/trackingService';
 import { formatCurrency, splitFormattedAmount } from '../utils/numberFormatter';
@@ -319,12 +319,20 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
     };
   });
 
-  // Estilo animado para cada card individual (efecto stack)
-  const getCardStyle = (index: number) => {
-    return useAnimatedStyle(() => {
-      const offset = index - currentBalanceIndex;
-      const baseTranslateX = offset * SCREEN_WIDTH;
-      
+  // Crear estilos animados para todos los cards ANTES del render
+  // CRITICAL: Siempre crear la misma cantidad de hooks, independiente de cuántos balances haya
+  const MAX_BALANCES = 10; // Máximo de balances que soportamos
+  const cardStyles = Array.from({ length: MAX_BALANCES }, (_, index) =>
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useAnimatedStyle(() => {
+      // Solo aplicar animación si este índice está dentro del rango de balances válidos
+      if (index >= validBalances.length) {
+        return {
+          transform: [{ scale: 1 }],
+          opacity: 1,
+        };
+      }
+
       // Efecto de escala y opacidad para cards adyacentes
       const scale = interpolate(
         translateX.value,
@@ -332,7 +340,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         [0.9, 1, 0.9],
         Extrapolation.CLAMP
       );
-      
+
       const opacity = interpolate(
         translateX.value,
         [-SCREEN_WIDTH * (index + 1), -SCREEN_WIDTH * index, -SCREEN_WIDTH * (index - 1)],
@@ -344,8 +352,8 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
         transform: [{ scale }],
         opacity,
       };
-    });
-  };
+    })
+  );
 
   // Estilo animado para la altura
   const animatedStyle = useAnimatedStyle(() => {
@@ -434,7 +442,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
 
   // Renderizar un card individual
   const renderCard = (balance: Balance, index: number) => {
-    const cardStyle = getCardStyle(index);
+    const cardStyle = cardStyles[index]; // Usar el array de styles pre-creados
     const isExpandedWithTransfer = currentState === BalanceCardState.EXPANDED_XXL && selectedAction === 'enviar';
     
     // Contenido común del card
@@ -610,14 +618,6 @@ const styles = StyleSheet.create({
   balanceContentWrapper: {
     alignItems: 'center',
     width: '100%',
-  },
-  saldoLabel: {
-    fontSize: 18,
-    fontFamily: FONTS.poppins.light,
-    color: COLORS.textSecondary,
-    marginTop: 0,
-    marginBottom: SPACING.lg,
-    alignSelf: 'center',
   },
   balanceRow: {
     flexDirection: 'row',

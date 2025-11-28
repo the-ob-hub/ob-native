@@ -166,16 +166,10 @@ export const userService = {
       }
       
       logger.log(`👥 UserService - Obteniendo usuario del backend: ${validatedUserId}`);
-      
-      // El backend acepta UUID o KSUID sin prefijo, pero también podemos enviar con prefijo
-      // Si tiene prefijo usr-, lo removemos para el backend (el backend espera UUID estándar por ahora)
-      const userIdForBackend = validatedUserId.startsWith('usr-') 
-        ? validatedUserId.substring(4) 
-        : validatedUserId;
-      
-      // Llamar al backend
+
+      // Llamar al backend con el userId completo (con prefijo usr- si lo tiene)
       const backendResponse = await apiClient.get<BackendUserResponse>(
-        `/api/v1/users/${userIdForBackend}`,
+        `/api/v1/users/${validatedUserId}`,
         undefined,
         signal
       );

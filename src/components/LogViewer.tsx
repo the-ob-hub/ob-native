@@ -12,6 +12,7 @@ import {
 import Clipboard from '@react-native-clipboard/clipboard';
 import { useLogs } from '../contexts/LogContext';
 import { healthService } from '../services/api/healthService';
+import { metroDiagnostics } from '../services/dev/metroDiagnostics';
 
 interface LogViewerProps {
   visible: boolean;
@@ -60,6 +61,78 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
     }
   };
 
+  const diagnoseConnection = async () => {
+    try {
+      addLog('🔍 Iniciando diagnóstico de conexión API...');
+      
+      const diagnostics = await healthService.diagnoseConnection();
+      
+      addLog(`📍 Base URL: ${diagnostics.baseURL}`);
+      addLog(`📍 Endpoint: ${diagnostics.endpoint}`);
+      addLog(`📍 URL Completa: ${diagnostics.fullURL}`);
+      addLog(`🕐 Timestamp: ${diagnostics.timestamp}`);
+      
+      if (diagnostics.success) {
+        addLog(`✅ Conexión exitosa`);
+        addLog(`⏱️ Tiempo de respuesta: ${diagnostics.responseTime}ms`);
+        if (diagnostics.status) addLog(`📊 Status: ${diagnostics.status}`);
+        if (diagnostics.healthData) {
+          addLog(`📦 Health Data: ${JSON.stringify(diagnostics.healthData)}`);
+        }
+      } else {
+        addLog(`❌ Conexión fallida`);
+        addLog(`⏱️ Tiempo hasta error: ${diagnostics.responseTime}ms`);
+        if (diagnostics.error) addLog(`❌ Error: ${diagnostics.error}`);
+      }
+    } catch (error) {
+      const errorMsg = `❌ Error en diagnóstico: ${error instanceof Error ? error.message : String(error)}`;
+      addLog(errorMsg);
+    }
+  };
+
+  const diagnoseMetro = async () => {
+    try {
+      addLog('🔍 Iniciando diagnóstico de Metro Bundler...');
+      addLog('📱 Verificando conexión dispositivo ↔ Xcode ↔ Metro...');
+      
+      const diagnostics = await metroDiagnostics.diagnoseConnection();
+      
+      addLog(`📱 Plataforma: ${diagnostics.platform}`);
+      addLog(`🔧 Modo desarrollo: ${diagnostics.isDevMode ? 'Sí' : 'No'}`);
+      addLog(`🕐 Timestamp: ${diagnostics.timestamp}`);
+      addLog('');
+      
+      const metro = diagnostics.metroConnection;
+      
+      if (metro.metroURL) {
+        addLog(`📍 Metro URL: ${metro.metroURL}`);
+      }
+      
+      if (metro.metroAccessible) {
+        addLog(`✅ Metro está accesible`);
+        if (metro.responseTime) {
+          addLog(`⏱️ Tiempo de respuesta: ${metro.responseTime}ms`);
+        }
+      } else {
+        addLog(`❌ Metro NO está accesible`);
+        if (metro.error) {
+          addLog(`❌ Error: ${metro.error}`);
+        }
+      }
+      
+      addLog('');
+      if (metro.suggestions && metro.suggestions.length > 0) {
+        addLog('💡 Sugerencias:');
+        metro.suggestions.forEach(suggestion => {
+          addLog(suggestion);
+        });
+      }
+    } catch (error) {
+      const errorMsg = `❌ Error en diagnóstico Metro: ${error instanceof Error ? error.message : String(error)}`;
+      addLog(errorMsg);
+    }
+  };
+
   const formatTimestamp = (date: Date) => {
     return date.toLocaleTimeString('es-ES', {
       hour: '2-digit',
@@ -79,7 +152,10 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>Logs de Consola</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>Logs de Consola</Text>
+              <Text style={styles.versionText}>v2.2.7</Text>
+            </View>
             <View style={styles.headerButtons}>
               {/* Botón Checks con dropdown */}
               <View style={styles.checksContainer}>
@@ -99,7 +175,25 @@ export const LogViewer: React.FC<LogViewerProps> = ({ visible, onClose }) => {
                       }} 
                       style={styles.healthButton}
                     >
-                      <Text style={styles.healthButtonText}>Health</Text>
+                      <Text style={styles.healthButtonText}>Health API</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        diagnoseConnection();
+                        setIsChecksOpen(false);
+                      }} 
+                      style={styles.healthButton}
+                    >
+                      <Text style={styles.healthButtonText}>Diagnóstico API</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        diagnoseMetro();
+                        setIsChecksOpen(false);
+                      }} 
+                      style={styles.healthButton}
+                    >
+                      <Text style={styles.healthButtonText}>Metro</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -159,10 +253,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#333',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   title: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  versionText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#888',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -171,6 +275,7 @@ const styles = StyleSheet.create({
   },
   checksContainer: {
     position: 'relative',
+    zIndex: 2000, // Mayor z-index para estar sobre todo el contenido
   },
   checksButton: {
     flexDirection: 'row',
@@ -202,8 +307,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
-    zIndex: 1000,
+    elevation: 10000, // Muy alto para estar sobre todo
+    zIndex: 10000, // Muy alto para estar sobre todo
   },
   healthButton: {
     paddingHorizontal: 12,
